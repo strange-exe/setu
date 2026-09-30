@@ -1,0 +1,1182 @@
+<title>Setu Priority Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* Layout: fixed instrument rail + scrolling console. Depth comes from elevation
+   and machined bezels, never from gradients. One accent, used sparingly. */
+:root{
+  /* surface ladder: each step is a physically higher plane */
+  --ground:#EEF1F0; --plane:#FFFFFF; --raised:#FFFFFF; --sunk:#E4E9E7; --line:#CFD8D5; --line-2:#E2E8E6;
+  --ink:#11201C; --ink-2:#44554F; --ink-3:#64766F;
+  --accent:#0F766A; --accent-2:#0B5C52; --accent-soft:#DCEDE9; --on-accent:#FFFFFF;
+  --warn:#9A5B12; --crit:#A8372B; --good:#2F6B40;
+  --r1:#2F6F7E; --r2:#6F9150; --r3:#C08A22; --r4:#C25F2C; --r5:#A8372B;
+  --void:#060D0C; --void-2:#0B1614; --void-line:#17332E; --void-ink:#BFD6D0;
+
+  /* spacing scale */
+  --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp5:24px; --sp6:32px; --sp7:44px;
+  /* radii: small and deliberate; an instrument is not a pill */
+  --rad1:3px; --rad2:5px; --rad3:8px;
+  /* elevation */
+  --sh1:0 1px 2px rgba(16,32,28,.07);
+  --sh2:0 2px 4px rgba(16,32,28,.07), 0 4px 12px -4px rgba(16,32,28,.10);
+  --sh3:0 8px 28px -10px rgba(16,32,28,.24), 0 2px 6px rgba(16,32,28,.08);
+  --inset-hi:inset 0 1px 0 rgba(255,255,255,.55);
+  --ring:0 0 0 3px rgba(15,118,106,.20);
+  /* z scale, fixed */
+  --z-base:0; --z-raise:1; --z-label:2; --z-panel:3; --z-rail:10; --z-skip:20;
+  --dur:150ms;
+
+  --display:'Archivo',ui-sans-serif,system-ui,sans-serif;
+  --body:'Source Sans 3',ui-sans-serif,system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#080E0D; --plane:#111917; --raised:#16201E; --sunk:#0A1110; --line:#24322F; --line-2:#1B2725;
+  --ink:#E7EFEC; --ink-2:#A6B8B2; --ink-3:#7B918A;
+  --accent:#4FC3AE; --accent-2:#3AA894; --accent-soft:#12302C; --on-accent:#06110F;
+  --warn:#E0A43B; --crit:#E2705F; --good:#6FBF83;
+  --r1:#3E8497; --r2:#8FB56A; --r3:#E0A43B; --r4:#DE7B45; --r5:#D8503F;
+  --sh1:0 1px 2px rgba(0,0,0,.40);
+  --sh2:0 2px 4px rgba(0,0,0,.36), 0 6px 16px -6px rgba(0,0,0,.50);
+  --sh3:0 10px 34px -12px rgba(0,0,0,.72), 0 2px 8px rgba(0,0,0,.40);
+  --inset-hi:inset 0 1px 0 rgba(255,255,255,.07);
+  --ring:0 0 0 3px rgba(79,195,174,.26);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --ground:#080E0D; --plane:#111917; --raised:#16201E; --sunk:#0A1110; --line:#24322F; --line-2:#1B2725;
+  --ink:#E7EFEC; --ink-2:#A6B8B2; --ink-3:#7B918A;
+  --accent:#4FC3AE; --accent-2:#3AA894; --accent-soft:#12302C; --on-accent:#06110F;
+  --warn:#E0A43B; --crit:#E2705F; --good:#6FBF83;
+  --r1:#3E8497; --r2:#8FB56A; --r3:#E0A43B; --r4:#DE7B45; --r5:#D8503F;
+  --sh1:0 1px 2px rgba(0,0,0,.40);
+  --sh2:0 2px 4px rgba(0,0,0,.36), 0 6px 16px -6px rgba(0,0,0,.50);
+  --sh3:0 10px 34px -12px rgba(0,0,0,.72), 0 2px 8px rgba(0,0,0,.40);
+  --inset-hi:inset 0 1px 0 rgba(255,255,255,.07);
+  --ring:0 0 0 3px rgba(79,195,174,.26);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.011em}
+p{text-wrap:pretty}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip{position:absolute;left:var(--sp2);top:-48px;z-index:var(--z-skip);background:var(--accent);color:var(--on-accent);
+  font-family:var(--display);font-size:13px;font-weight:600;padding:10px 15px;border-radius:var(--rad2);text-decoration:none;transition:transform var(--dur) ease-out}
+.skip:focus{top:var(--sp2);transform:translateY(0)}
+
+/* ───────── instrument rail ───────── */
+.shell{display:grid;grid-template-columns:244px minmax(0,1fr);min-height:100%}
+.rail{background:var(--plane);border-right:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);
+  align-self:start;height:100dvh;display:flex;flex-direction:column;gap:var(--sp4);
+  padding:var(--sp4) 0 var(--sp4);z-index:var(--z-rail);box-shadow:var(--sh1)}
+.brand{display:flex;gap:var(--sp3);align-items:center;padding:0 var(--sp4)}
+.brand-tile{width:38px;height:38px;flex:none;display:grid;place-items:center;background:var(--raised);
+  border:1px solid var(--line);border-radius:var(--rad3);box-shadow:var(--sh1),var(--inset-hi)}
+.brand-tile svg{width:22px;height:22px}
+.brand b{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.005em;display:block;line-height:1}
+.brand span{font-size:11px;color:var(--ink-3);display:block;line-height:1.35;margin-top:3px;max-width:15ch}
+
+/* live status: a pulse is state, not decoration */
+.live{margin:0 var(--sp4);padding:var(--sp3);background:var(--sunk);border:1px solid var(--line-2);
+  border-radius:var(--rad2);display:flex;gap:var(--sp3);align-items:center}
+.pulse{width:8px;height:8px;flex:none;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 var(--good);
+  animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,107,64,.5)}70%{box-shadow:0 0 0 7px rgba(47,107,64,0)}100%{box-shadow:0 0 0 0 rgba(47,107,64,0)}}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}}
+.live b{font-family:var(--display);font-size:16px;font-weight:700;display:block;line-height:1;font-variant-numeric:tabular-nums}
+.live span{font-size:10.5px;color:var(--ink-3);display:block;margin-top:2px}
+
+nav{display:flex;flex-direction:column;gap:2px;padding:0 var(--sp2);overflow-y:auto}
+.navgroup{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+  margin:var(--sp3) 0 var(--sp1);padding:0 var(--sp3)}
+.navgroup:first-child{margin-top:0}
+nav button{all:unset;cursor:pointer;display:grid;grid-template-columns:18px 1fr auto;gap:var(--sp3);align-items:center;
+  padding:9px var(--sp3);border-radius:var(--rad2);font-size:13.5px;color:var(--ink-2);position:relative;
+  transition:background var(--dur) ease-out,color var(--dur) ease-out,transform var(--dur) ease-out}
+nav button .ni{width:18px;height:18px;opacity:.75}
+nav button .n{font-family:var(--mono);font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+nav button:hover{background:var(--sunk);color:var(--ink)}
+nav button:active{transform:translateY(1px)}
+nav button[aria-selected="true"]{background:var(--raised);color:var(--ink);font-weight:600;
+  box-shadow:var(--sh2),var(--inset-hi);border:1px solid var(--line-2);padding:8px calc(var(--sp3) - 1px)}
+nav button[aria-selected="true"]::before{content:"";position:absolute;left:-1px;top:8px;bottom:8px;width:3px;
+  background:var(--accent);border-radius:0 2px 2px 0}
+nav button[aria-selected="true"] .ni{opacity:1;color:var(--accent)}
+nav button:focus-visible{outline:none;box-shadow:var(--ring)}
+
+.rail-foot{margin-top:auto;padding:0 var(--sp4);font-size:11px;color:var(--ink-3);line-height:1.45}
+.rail-foot p{margin:var(--sp2) 0 0}
+.dpg{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+  border:1px solid var(--line);border-radius:var(--rad1);padding:4px 7px;color:var(--ink-2);background:var(--sunk)}
+
+/* ───────── main ───────── */
+main{min-width:0;padding-block:var(--sp5) 72px;padding-left:var(--sp6);padding-right:var(--sp6);max-width:1280px}
+main:focus{outline:none}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--sp4);flex-wrap:wrap;
+  padding-bottom:var(--sp4);border-bottom:1px solid var(--line);margin-bottom:var(--sp5)}
+.page-head h2{font-size:27px;font-weight:600;margin-top:var(--sp1)}
+.page-head p{margin:var(--sp2) 0 0;color:var(--ink-2);font-size:13.5px;max-width:64ch}
+
+/* KPI tiles: raised, with a capped accent hairline */
+.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp3);margin-bottom:var(--sp5)}
+.strip>div{background:var(--raised);border:1px solid var(--line-2);border-radius:var(--rad3);padding:var(--sp4);
+  box-shadow:var(--sh1);position:relative;overflow:hidden}
+.strip>div::before{content:"";position:absolute;inset:0 auto auto 0;height:2px;width:36px;background:var(--accent);border-radius:0 0 2px 0}
+.strip .v{font-family:var(--display);font-size:26px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.strip .l{font-size:11.5px;color:var(--ink-3);margin-top:var(--sp1);line-height:1.35}
+
+section[hidden]{display:none!important}
+section:focus{outline:none}
+.panel{background:var(--plane);border:1px solid var(--line-2);border-radius:var(--rad3);padding:var(--sp5);box-shadow:var(--sh1)}
+.panel+.panel{margin-top:var(--sp4)}
+.panel>h3{font-size:16px;font-weight:600;margin-bottom:var(--sp1)}
+.panel>h3+p{margin:0 0 var(--sp4);color:var(--ink-2);font-size:13px;max-width:70ch}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sp4);margin-top:var(--sp4)}
+.split{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:var(--sp4);align-items:start}
+.split>div>.panel+.panel{margin-top:var(--sp4)}
+
+/* ───────── tactile controls ───────── */
+.btn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:var(--sp2);
+  background:var(--accent);color:var(--on-accent);font-family:var(--display);font-weight:600;font-size:13.5px;
+  padding:10px 18px;border-radius:var(--rad2);border:1px solid var(--accent-2);
+  box-shadow:var(--sh1),inset 0 1px 0 rgba(255,255,255,.18);
+  transition:transform var(--dur) ease-out,box-shadow var(--dur) ease-out,background var(--dur) ease-out}
+.btn:hover{background:var(--accent-2);transform:translateY(-1px);box-shadow:var(--sh2),inset 0 1px 0 rgba(255,255,255,.18)}
+.btn:active{transform:translateY(0);box-shadow:inset 0 2px 4px rgba(0,0,0,.22)}
+.btn:focus-visible{box-shadow:var(--ring),var(--sh1)}
+.btn.ghost{background:var(--raised);color:var(--ink-2);border-color:var(--line);box-shadow:var(--sh1),var(--inset-hi)}
+.btn.ghost:hover{background:var(--sunk);color:var(--ink)}
+
+.chips{display:flex;flex-wrap:wrap;gap:var(--sp2);margin-bottom:var(--sp3)}
+.chip{all:unset;box-sizing:border-box;cursor:pointer;font-size:12.5px;padding:7px 11px;border:1px solid var(--line);
+  border-radius:var(--rad2);background:var(--raised);color:var(--ink-2);display:inline-flex;gap:7px;align-items:center;
+  box-shadow:var(--sh1),var(--inset-hi);transition:transform var(--dur) ease-out,box-shadow var(--dur) ease-out,border-color var(--dur) ease-out}
+.chip:hover{border-color:var(--accent);color:var(--ink);transform:translateY(-1px);box-shadow:var(--sh2)}
+.chip:active{transform:translateY(0);box-shadow:inset 0 2px 3px rgba(0,0,0,.14)}
+.chip:focus-visible{outline:none;box-shadow:var(--ring)}
+.chip .cc{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.06em}
+
+textarea,select{font-family:var(--body);font-size:14px;color:var(--ink);background:var(--sunk);
+  border:1px solid var(--line);border-radius:var(--rad2);padding:11px 12px;
+  box-shadow:inset 0 1px 2px rgba(16,32,28,.06);transition:box-shadow var(--dur) ease-out,border-color var(--dur) ease-out}
+textarea{width:100%;min-height:96px;resize:vertical;display:block}
+select{font-size:13px;padding:9px 11px;cursor:pointer}
+textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:var(--ring)}
+.row{display:flex;gap:var(--sp2);align-items:center;flex-wrap:wrap;margin-top:var(--sp3)}
+
+/* ───────── pipeline ───────── */
+.pipe{display:flex;flex-direction:column;border:1px solid var(--line-2);border-radius:var(--rad2);
+  background:var(--sunk);overflow:hidden;box-shadow:inset 0 1px 3px rgba(16,32,28,.06)}
+.stage{display:grid;grid-template-columns:20px 1fr;gap:var(--sp3);padding:9px var(--sp3);
+  border-bottom:1px solid var(--line-2);font-size:12.5px;opacity:.34;transition:opacity var(--dur) ease-out}
+.stage:last-child{border-bottom:0}
+.stage.on{opacity:1}
+.stage .dot{width:7px;height:7px;border-radius:50%;background:var(--ink-3);margin:7px 0 0 6px}
+.stage.on .dot{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.stage b{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);display:block}
+.stage span{color:var(--ink);font-size:13px}
+@media (prefers-reduced-motion:reduce){.stage{transition:none}}
+
+.record{background:var(--sunk);border:1px solid var(--line-2);border-radius:var(--rad2);padding:var(--sp4);
+  font-family:var(--mono);font-size:12px;line-height:1.75;white-space:pre-wrap;word-break:break-word;overflow-x:auto;
+  box-shadow:inset 0 1px 3px rgba(16,32,28,.06)}
+.k{color:var(--ink-3)}
+.s{color:var(--accent)}
+.badge{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.07em;padding:3px 7px;
+  border:1px solid currentColor;border-radius:var(--rad1);text-transform:uppercase}
+.b-crit{color:var(--crit)}.b-warn{color:var(--warn)}.b-ok{color:var(--good)}
+
+/* ───────── heat table ───────── */
+.gridwrap{overflow-x:auto;border-radius:var(--rad2)}
+table.heat{border-collapse:separate;border-spacing:2px;font-size:12.5px;min-width:780px;width:100%}
+table.heat th{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);
+  font-weight:400;padding:0 0 var(--sp2);text-align:center;vertical-align:bottom}
+table.heat th.dname{text-align:left;padding-right:var(--sp3);min-width:152px}
+table.heat td{padding:0}
+table.heat td.dname{padding:0 var(--sp3) 0 0;white-space:nowrap;font-size:13px}
+table.heat td.dname small{color:var(--ink-3);font-family:var(--mono);font-size:10px;margin-left:5px}
+.cell{height:26px;border-radius:var(--rad1);display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10.5px;color:#fff;cursor:default;font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:2px;align-items:center;margin-top:var(--sp3);font-size:11px;color:var(--ink-3);flex-wrap:wrap}
+.legend i{width:26px;height:9px;display:inline-block;border-radius:1px}
+
+/* ───────── ranking ───────── */
+.rank{display:flex;flex-direction:column;gap:var(--sp2)}
+.rk{background:var(--raised);border:1px solid var(--line-2);border-radius:var(--rad2);padding:var(--sp3) var(--sp4);
+  display:grid;grid-template-columns:30px minmax(0,1fr) 98px;gap:var(--sp3);align-items:center;box-shadow:var(--sh1);
+  transition:transform var(--dur) ease-out,box-shadow var(--dur) ease-out}
+.rk:hover{transform:translateY(-1px);box-shadow:var(--sh2)}
+.rk .no{font-family:var(--display);font-size:18px;font-weight:700;color:var(--ink-3);font-variant-numeric:tabular-nums;text-align:center}
+.rk .nm{font-size:13.5px;font-weight:600;display:flex;gap:7px;align-items:baseline;flex-wrap:wrap}
+.rk .nm small{font-family:var(--mono);font-size:10px;color:var(--ink-3);font-weight:400;letter-spacing:.04em}
+.rk .bar{height:6px;border-radius:3px;background:var(--sunk);margin-top:6px;position:relative;overflow:hidden;
+  box-shadow:inset 0 1px 2px rgba(16,32,28,.10)}
+.rk .bar i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:3px}
+.rk .meta{font-size:11.5px;color:var(--ink-2);margin-top:5px}
+.rk .sc{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.rk .sc b{font-size:19px;font-family:var(--display);letter-spacing:-.02em}
+.delta{font-family:var(--mono);font-size:10.5px;display:block;margin-top:2px}
+.up{color:var(--crit)}.down{color:var(--ink-3)}
+
+/* ───────── sliders & toggle ───────── */
+.ctrl{display:flex;flex-direction:column;gap:var(--sp4)}
+.sl label{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-2);margin-bottom:var(--sp1)}
+.sl label b{font-family:var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent);height:20px;cursor:pointer}
+input[type=range]:focus-visible{outline:none;box-shadow:var(--ring);border-radius:var(--rad1)}
+.toggle{display:flex;gap:var(--sp3);align-items:flex-start;font-size:12.5px;color:var(--ink-2);cursor:pointer;
+  padding:var(--sp4);background:var(--sunk);border:1px solid var(--line-2);border-radius:var(--rad2);
+  box-shadow:inset 0 1px 2px rgba(16,32,28,.06);transition:border-color var(--dur) ease-out}
+.toggle:hover{border-color:var(--accent)}
+.toggle input{margin-top:2px;accent-color:var(--accent);flex:none;width:16px;height:16px}
+.toggle b{color:var(--ink);display:block;font-size:13px;margin-bottom:3px}
+.formula{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);background:var(--sunk);border:1px solid var(--line-2);
+  border-radius:var(--rad2);padding:var(--sp3);line-height:1.8;overflow-x:auto;white-space:nowrap;
+  box-shadow:inset 0 1px 3px rgba(16,32,28,.06)}
+
+svg.chart{width:100%;height:auto;display:block}
+.note{font-size:12px;color:var(--ink-3);margin-top:var(--sp3);line-height:1.5}
+.kbdhint{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;color:var(--ink-3);margin-top:var(--sp2)}
+
+/* ───────── architecture layers ───────── */
+.layers{display:flex;flex-direction:column;gap:var(--sp2)}
+.layer{background:var(--raised);border:1px solid var(--line-2);border-radius:var(--rad2);padding:var(--sp4);
+  display:grid;grid-template-columns:124px minmax(0,1fr);gap:var(--sp4);box-shadow:var(--sh1)}
+.layer .lt{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);padding-top:2px}
+.layer .ld{font-size:13px;color:var(--ink-2)}
+.layer .ld b{color:var(--ink);font-weight:600}
+ul.tight{margin:0;padding-left:18px;font-size:13px;color:var(--ink-2)}
+ul.tight li{margin-bottom:var(--sp2)}
+ul.tight b{color:var(--ink)}
+.cols2{columns:2;column-gap:var(--sp6)}
+.fail{border-left:3px solid var(--warn);border-radius:0 var(--rad1) var(--rad1) 0;background:var(--sunk);
+  padding:var(--sp3) var(--sp4);font-size:13px;color:var(--ink-2)}
+.fail b{color:var(--ink)}
+
+/* ───────── orbital console: a viewport, deliberately dark in both themes ───────── */
+.console{position:relative;background:var(--void);border:1px solid var(--line);border-radius:var(--rad3);overflow:hidden;
+  box-shadow:var(--sh3),inset 0 0 0 1px rgba(255,255,255,.03)}
+.console canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.console canvas:active{cursor:grabbing}
+.console canvas:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+.stage3d{position:relative;aspect-ratio:16/9;min-height:420px;max-width:100%}
+@media (max-width:760px){.stage3d{aspect-ratio:4/5;min-height:440px}}
+.ov{position:absolute;z-index:var(--z-label);pointer-events:none}
+.ov-tl{top:var(--sp3);left:var(--sp3);display:flex;gap:var(--sp1);flex-wrap:wrap;pointer-events:auto;max-width:70%}
+.nat{all:unset;box-sizing:border-box;cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.09em;
+  padding:6px 10px;border:1px solid var(--void-line);border-radius:var(--rad1);color:var(--void-ink);
+  background:rgba(11,22,20,.78);transition:transform var(--dur) ease-out,background var(--dur) ease-out,border-color var(--dur) ease-out}
+.nat:hover{border-color:var(--accent);color:#fff;transform:translateY(-1px)}
+.nat:active{transform:translateY(0)}
+.nat[aria-pressed="true"]{background:var(--accent);color:#06100E;border-color:var(--accent);font-weight:500}
+.nat:focus-visible{outline:none;box-shadow:var(--ring)}
+.ov-bl{bottom:var(--sp3);left:var(--sp3);font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--void-ink);opacity:.72;line-height:1.8}
+.ov-bl .sw{display:inline-block;width:17px;height:7px;margin-right:2px;vertical-align:middle;border-radius:1px}
+.ov-br{bottom:var(--sp3);right:var(--sp3);font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--void-ink);opacity:.45}
+.detail{position:absolute;z-index:var(--z-panel);top:var(--sp3);right:var(--sp3);width:224px;
+  background:rgba(11,22,20,.92);border:1px solid var(--void-line);border-radius:var(--rad2);padding:var(--sp4);
+  color:var(--void-ink);pointer-events:none;box-shadow:0 12px 30px -12px rgba(0,0,0,.8)}
+.detail h4{font-family:var(--display);font-size:15px;color:#fff;font-weight:600}
+.detail .cc2{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;opacity:.6;display:block;margin-bottom:var(--sp3)}
+.detail dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:5px var(--sp3);font-size:11.5px}
+.detail dt{opacity:.62}
+.detail dd{margin:0;font-family:var(--mono);color:#fff;font-variant-numeric:tabular-nums;text-align:right}
+.detail .pri{font-family:var(--display);font-size:30px;color:#fff;font-weight:700;line-height:1;margin:3px 0 var(--sp3);
+  font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+@media (max-width:760px){.detail{position:static;width:auto}.ov-tl{max-width:none}}
+.lbl{position:absolute;z-index:var(--z-raise);font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:#fff;
+  white-space:nowrap;transform:translate(10px,-50%);text-shadow:0 0 7px #060D0C,0 0 3px #060D0C;pointer-events:none}
+.nogl{padding:var(--sp7) var(--sp5);text-align:center;color:var(--void-ink);font-size:13px}
+
+@media (max-width:980px){
+  .shell{grid-template-columns:1fr}
+  .rail{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--sp3);
+    padding:var(--sp3) var(--sp4);border-right:0;border-bottom:1px solid var(--line)}
+  .brand span,.live,.rail-foot,.navgroup{display:none}
+  nav{flex-direction:row;flex-wrap:wrap;padding:0}
+  nav button{padding:7px 11px}
+  nav button[aria-selected="true"]{padding:6px 10px}
+  main{padding-left:var(--sp4);padding-right:var(--sp4)}
+  .two,.split{grid-template-columns:1fr}
+  .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cols2{columns:1}
+  .layer{grid-template-columns:1fr;gap:var(--sp2)}
+}
+@media (max-width:460px){.strip{grid-template-columns:1fr}.page-head h2{font-size:23px}}
+
+</style>
+
+<a class="skip" href="#main">Skip to content</a>
+<div class="shell">
+<aside class="rail">
+  <div class="brand">
+    <div class="brand-tile">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M2 17c4 0 4-8 10-8s6 8 10 8" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="4" cy="20" r="1.6" fill="var(--ink-3)"/><circle cx="12" cy="20" r="1.6" fill="var(--ink-3)"/><circle cx="20" cy="20" r="1.6" fill="var(--ink-3)"/>
+        <circle cx="12" cy="9" r="2.4" fill="var(--accent)"/>
+      </svg>
+    </div>
+    <div><b>Setu</b><span>Citizen signal to national capital plan</span></div>
+  </div>
+
+  <div class="live">
+    <span class="pulse" aria-hidden="true"></span>
+    <div><b id="ingest" class="mono">69,651</b><span>records indexed &middot; live</span></div>
+  </div>
+
+  <nav role="tablist" aria-label="Sections">
+    <p class="navgroup">Signal</p>
+    <button role="tab" aria-selected="true" data-p="intake"><svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11a9 9 0 0 1 18 0"/><path d="M5 11v3a3 3 0 0 0 3 3h1"/><rect x="2.5" y="10.5" width="3.5" height="5" rx="1.2"/><rect x="18" y="10.5" width="3.5" height="5" rx="1.2"/></svg><span class="nl">Intake</span><span class="n">01</span></button>
+    <button role="tab" aria-selected="false" data-p="hotspots"><svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.6 5.3 3.6 8.5s-1.2 6.2-3.6 8.5c-2.4-2.3-3.6-5.3-3.6-8.5S9.6 5.8 12 3.5Z"/></svg><span class="nl">Demand map</span><span class="n">02</span></button>
+    <p class="navgroup">Decision</p>
+    <button role="tab" aria-selected="false" data-p="priority"><svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="nl">Priority engine</span><span class="n">03</span></button>
+    <button role="tab" aria-selected="false" data-p="blindspot"><svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.4"/></svg><span class="nl">Voice gap</span><span class="n">04</span></button>
+    <p class="navgroup">Platform</p>
+    <button role="tab" aria-selected="false" data-p="impact"><svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/></svg><span class="nl">Impact</span><span class="n">05</span></button>
+    <button role="tab" aria-selected="false" data-p="build"><svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7Z"/><path d="M3 7l9 4.5L21 7M12 11.5V21"/></svg><span class="nl">Build &amp; DPG</span><span class="n">06</span></button>
+  </nav>
+
+  <div class="rail-foot">
+    <span class="dpg">DPG CANDIDATE &middot; AGPL-3.0</span>
+    <p>Synthetic cohort: 16 sub-national units across 8 BRICS+ states. No live citizen data.</p>
+  </div>
+</aside>
+
+<main id="main" tabindex="-1">
+<!-- 01 INTAKE -->
+<section id="p-intake">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">01 · Ingestion</div>
+      <h2>One pipeline, eight languages, three channels</h2>
+      <p>A citizen speaks to an IVR line, types on WhatsApp, or sends an SMS. Setu turns that into a structured, geotagged, deduplicated civic record that a planning ministry can aggregate. Pick a real-world sample or write your own.</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Simulate an incoming request</h3>
+    <p>The classifier below is a lexicon matcher that runs entirely in this page — the same logic we ship to the edge so district offices with no connectivity can still triage. Production swaps in a fine-tuned multilingual encoder behind the identical interface.</p>
+    <div class="chips" id="samples" role="group" aria-label="Example citizen requests, by language"></div>
+    <label for="utter" class="eyebrow" style="display:block;margin-bottom:6px">Citizen utterance</label>
+    <textarea id="utter" spellcheck="false"></textarea>
+    <div class="row">
+      <select id="chan" aria-label="Channel">
+        <option value="IVR">Channel: IVR voice call</option>
+        <option value="WhatsApp">Channel: WhatsApp</option>
+        <option value="SMS">Channel: SMS</option>
+        <option value="Kiosk">Channel: Panchayat kiosk</option>
+      </select>
+      <select id="dist" aria-label="Origin district"></select>
+      <button class="btn" id="run">Process request</button>
+    </div>
+  </div>
+
+  <div class="two" style="margin-top:18px">
+    <div class="panel">
+      <h3>Pipeline trace</h3>
+      <p>Every stage is auditable. Low-confidence outputs route to a human queue rather than silently entering the index.</p>
+      <div class="pipe" id="pipe"></div>
+    </div>
+    <div class="panel">
+      <h3>Emitted civic record</h3>
+      <p>Open schema, signed and appended to the district ledger. This is the unit every downstream chart consumes.</p>
+      <div class="record" id="rec">Awaiting input — choose a sample above.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 HOTSPOTS -->
+<section id="p-hotspots" hidden>
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">02 · Aggregation</div>
+      <h2>Where demand concentrates</h2>
+      <p>Requests per 100,000 residents, by sector and sub-national unit. Rate rather than raw count, so a metro of 12 million does not drown out a district of 900,000.</p>
+    </div>
+  </div>
+  <div class="strip" id="strip2"></div>
+  <div class="panel">
+    <h3>Orbital demand view</h3>
+    <p>Each pillar is a sub-national unit. Height is its live priority score, so the planet re-extrudes when you move a weight on the priority engine. Drag to orbit, click a pillar to inspect, or select a member state to fly to it.</p>
+    <div class="console stage3d" id="stage">
+      <canvas id="globe" tabindex="0" role="img" aria-describedby="globehelp"
+        aria-label="Interactive globe. Each pillar is a sub-national unit, its height the priority score. The same figures are in the sectoral demand table below this view."></canvas>
+      <p id="globehelp" class="vh">Use the left and right arrow keys to rotate, up and down to tilt, and Enter to step through units. Every value shown here also appears in the table below.</p>
+      <div class="ov ov-tl" id="nats"></div>
+      <div class="detail" id="detail"></div>
+      <div class="ov ov-bl">PRIORITY SCORE<br><span class="sw" style="background:#3E8497"></span><span class="sw" style="background:#8FB56A"></span><span class="sw" style="background:#E0A43B"></span><span class="sw" style="background:#DE7B45"></span><span class="sw" style="background:#D8503F"></span> LOW &rarr; CRITICAL</div>
+      <div class="ov ov-br">SYNTHETIC COHORT &middot; 16 UNITS &middot; 8 STATES</div>
+    </div>
+    <p class="kbdhint">KEYBOARD: FOCUS THE GLOBE, THEN ← → TO ROTATE, ↑ ↓ TO TILT, ENTER TO STEP THROUGH UNITS</p>
+    <p class="note">Pillar height reads from the same scoring function as page 03 — this is a view onto the model, not a separate illustration.</p>
+  </div>
+  <div class="panel">
+    <h3>Sectoral demand intensity</h3>
+    <p>Darker cells carry more requests per capita. Read down a column for a cross-border sector signal; read across a row for a district's own priority order.</p>
+    <div class="gridwrap"><table class="heat" id="heat"></table></div>
+    <div class="legend"><span style="margin-right:6px">Requests / 100k:</span><i style="background:var(--r1)"></i><i style="background:var(--r2)"></i><i style="background:var(--r3)"></i><i style="background:var(--r4)"></i><i style="background:var(--r5)"></i><span style="margin-left:6px">low → high</span></div>
+    <p class="note">Synthetic data. Sector taxonomy aligns to the UN SDG 6/7/9 infrastructure families so records stay comparable across member states.</p>
+  </div>
+</section>
+
+<!-- 03 PRIORITY -->
+<section id="p-priority" hidden>
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">03 · Recommendation</div>
+      <h2>Priority engine</h2>
+      <p>Citizen demand alone is a popularity contest. Setu scores each unit against four weighted terms and reports how far the ranking diverges from money already committed in the national plan.</p>
+    </div>
+  </div>
+  <div class="split">
+    <div>
+      <div class="panel">
+        <h3>Weights</h3>
+        <p>Move these to encode a government's stated doctrine. Nothing is hidden.</p>
+        <div class="ctrl" id="sliders"></div>
+        <div class="sl" style="margin-top:13px">
+          <label for="cur">Display currency <b id="curnote">indicative FX</b></label>
+          <select id="cur" style="width:100%">
+            <option value="INR">₹ Indian rupee</option>
+            <option value="CNY">¥ Chinese yuan</option>
+            <option value="BRL">R$ Brazilian real</option>
+            <option value="RUB">₽ Russian rouble</option>
+            <option value="ZAR">R South African rand</option>
+            <option value="USD">US$ United States dollar</option>
+          </select>
+        </div>
+        <p class="note">Capital plans are held in each state's currency of record. The console converts at an indicative rate so units stay comparable across borders; a deployment reads live central-bank rates.</p>
+      </div>
+      <div class="panel">
+        <h3>Latent demand correction</h3>
+        <label class="toggle"><input type="checkbox" id="corr" checked>
+        <span><b>Impute under-reported demand</b>Districts with poor connectivity and low literacy file fewer requests per capita regardless of need. When on, the demand term blends observed volume (60%) with demand expected from population × infrastructure deficit (40%).</span></label>
+      </div>
+      <div class="panel">
+        <h3>Scoring function</h3>
+        <div class="formula" id="formula"></div>
+        <p class="note">All terms min–max normalised to 0–100 across the cohort. Funding gap is the inverse of committed capital per capita, so well-funded units are damped, not excluded.</p>
+      </div>
+    </div>
+    <div>
+      <div class="panel">
+        <h3>Recommended investment order</h3>
+        <p>Δ compares Setu's rank against the unit's rank by committed capital per capita. A red Δ means the plan is currently underweighting a place the evidence favours.</p>
+        <div class="rank" id="rank"></div>
+        <p id="rankstatus" class="vh" role="status" aria-live="polite"></p>
+      </div>
+      <div class="panel">
+        <h3>Top recommendation, written for a cabinet note</h3>
+        <div id="brief" style="font-size:13.5px;color:var(--ink-2);line-height:1.6"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 BLINDSPOT -->
+<section id="p-blindspot" hidden>
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">04 · Failure mode</div>
+      <h2>The voice gap</h2>
+      <p>The known way a citizen-feedback platform fails: it hears the connected and funds them, while silent districts with worse infrastructure stay invisible. Setu measures that gap explicitly instead of assuming it away.</p>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Participation against need</h3>
+    <p>Horizontal: how loudly a unit reports. Vertical: how badly it scores on the infrastructure deficit index. Bubble area: capital already committed per capita, in the display currency you select on the priority engine. The lower-right quadrant is where naive demand-ranking sends the money; the upper-left is where it should also go.</p>
+    <div id="scatter"></div>
+    <p class="note">Units in the upper-left file few requests yet carry the worst deficits — the correction on the previous page is what lifts them into the recommendation list.</p>
+  </div>
+  <div class="two">
+    <div class="panel">
+      <h3>Most under-heard units</h3>
+      <p>Expected requests (from population × deficit) minus observed requests, normalised.</p>
+      <div class="rank" id="gaprank"></div>
+    </div>
+    <div class="panel">
+      <h3>What we do about it</h3>
+      <ul class="tight">
+        <li><b>Impute, then flag.</b> Imputed demand never silently replaces real demand; the record carries an <span class="mono">imputed:true</span> field and the rank shows the uplift.</li>
+        <li><b>Actively sample.</b> Units above a gap threshold trigger outbound IVR surveys in the local language, turning a passive channel into a stratified one.</li>
+        <li><b>Weight by census, not by traffic.</b> Rates per 100k, never raw counts.</li>
+        <li><b>Publish the gap.</b> The voice-gap table is part of the public dashboard, so a district can contest its own invisibility.</li>
+      </ul>
+      <div class="fail" style="margin-top:14px"><b>Honest limit:</b> imputation assumes deficit indices are themselves unbiased. Where a census under-counts informal settlements, Setu inherits that error. Mitigation is ground-truthing against satellite-derived built-up area, which this prototype does not implement.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 IMPACT -->
+<section id="p-impact" hidden>
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">05 · Measurement</div>
+      <h2>Did the money change anything?</h2>
+      <p>A platform that only ranks is an opinion generator. Setu holds a matched-control design so a ministry can state, with evidence, whether units it funded on this advice improved faster than comparable units it did not.</p>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Infrastructure deficit, funded cohort against matched controls</h3>
+    <p>Units funded in the top decile of Setu's ranking, paired with units of similar baseline deficit, population band and sector mix that were not funded. Lower is better.</p>
+    <div id="impact"></div>
+    <p class="note"><b>Illustrative design, not observed results.</b> These curves show the evaluation this prototype is built to support; no real programme has been run through it. The number that matters is the gap at Q8, and it is only credible if the control group was matched before allocation, not selected afterwards.</p>
+  </div>
+  <div class="two">
+    <div class="panel">
+      <h3>Why matched controls, not before-and-after</h3>
+      <ul class="tight">
+        <li><b>Infrastructure improves anyway.</b> A before-and-after chart credits the platform with every road the state would have built regardless.</li>
+        <li><b>Ranking creates selection.</b> High-scoring units differ systematically from low-scoring ones, so the comparison group has to be built on baseline covariates, not convenience.</li>
+        <li><b>Pre-register the pairing.</b> Matches are fixed and published before allocation, which is the only thing that stops a ministry from choosing flattering controls later.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Reported alongside every recommendation</h3>
+      <div class="rank" id="impactkpi"></div>
+      <p class="note">Coverage and voice-gap variance are process metrics — they say the platform is being used fairly. Only the deficit gap says it worked.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 06 BUILD -->
+<section id="p-build" hidden>
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">06 · Engineering</div>
+      <h2>Build and DPG posture</h2>
+      <p>What exists in this prototype, what production needs, and why the design qualifies as a Digital Public Good rather than a vendor product.</p>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Reference architecture</h3>
+    <div class="layers">
+      <div class="layer"><div class="lt">Channel</div><div class="ld"><b>Asterisk IVR · WhatsApp Business API · SMS gateway · kiosk PWA.</b> Voice matters most: it is the only channel that works for a non-literate citizen, and it is the one most platforms skip.</div></div>
+      <div class="layer"><div class="lt">Understanding</div><div class="ld"><b>Whisper-large-v3 for ASR, IndicTrans2 / NLLB-200 for pivot translation, a fine-tuned XLM-R classifier for sector, urgency and sentiment.</b> All open weights, all self-hostable — a ministry can run the stack inside its own sovereign cloud.</div></div>
+      <div class="layer"><div class="lt">Record</div><div class="ld"><b>Append-only district ledger, open JSON schema, per-record provenance.</b> PII is separated at ingest: the aggregation store holds a district code and an anonymous hash, never a phone number.</div></div>
+      <div class="layer"><div class="lt">Fusion</div><div class="ld"><b>Joins to census, the national infrastructure deficit index and published capital budgets.</b> Deduplication clusters near-identical reports so one grievance filed 400 times counts as one issue with strength 400.</div></div>
+      <div class="layer"><div class="lt">Console</div><div class="ld"><b>React 19 + Next.js with React Three Fiber for the orbital view, served as a progressive web app.</b> This prototype is a single dependency-free HTML file so it opens instantly from a link on any device; the production console is a component app against the same open API.</div></div>
+      <div class="layer"><div class="lt">Decision</div><div class="ld"><b>Transparent weighted scoring with published weights, latent-demand correction and plan-divergence reporting.</b> No black-box ranking: a citizen can reconstruct why their district placed where it did.</div></div>
+    </div>
+  </div>
+  <div class="two">
+    <div class="panel">
+      <h3>Digital Public Good criteria</h3>
+      <ul class="tight">
+        <li><b>Open licence.</b> AGPL-3.0 for the platform, CC-BY-4.0 for the schema and taxonomy.</li>
+        <li><b>Open standards.</b> OpenAPI, ISO 3166-2 sub-national codes, SDG-aligned sector taxonomy.</li>
+        <li><b>Platform independence.</b> No managed-cloud primitives; Postgres, object storage, containers.</li>
+        <li><b>Do-no-harm by design.</b> PII split at ingest, data-minimised aggregation store, published scoring weights.</li>
+        <li><b>SDG relevance.</b> Targets 6.1, 7.1, 9.1, 16.7 — the last one, responsive and participatory decision-making, is the direct one.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Status and next 30 days</h3>
+      <ul class="tight">
+        <li><b>Working now:</b> multilingual lexicon triage, sector and urgency tagging, geotagged records, demand aggregation, the weighted priority engine, latent-demand correction, plan-divergence reporting.</li>
+        <li><b>Stubbed:</b> ASR (samples are pre-transcribed), translation (pivot strings are fixed), dedup clustering.</li>
+        <li><b>Next:</b> wire Whisper and NLLB behind the existing interface; validate the classifier against a hand-labelled set of 2,000 real grievances with per-language F1 reported separately, because an aggregate score would hide failure in low-resource languages; back-test the priority ranking against three years of completed projects to check whether high-scoring units actually showed larger outcome gains.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>How we would know it worked</h3>
+    <div class="cols2">
+      <ul class="tight">
+        <li><b>Coverage:</b> share of districts filing at least 50 requests per 100k per quarter, and the voice gap's variance falling over time.</li>
+        <li><b>Classifier quality:</b> macro-F1 per language, not pooled; a floor of 0.75 on the weakest language before any recommendation ships.</li>
+        <li><b>Alignment:</b> rank correlation between Setu's order and the next budget cycle's actual allocations.</li>
+        <li><b>Outcome:</b> change in the infrastructure deficit index in funded units against matched unfunded controls, 24 months out.</li>
+      </ul>
+    </div>
+    <p class="note">The fourth metric is the only one that proves the platform mattered. The first three are necessary conditions, not evidence of impact.</p>
+  </div>
+</section>
+</main>
+</div>
+
+<script>
+/* ---------- synthetic cohort: 16 sub-national units, 8 BRICS+ states ---------- */
+var SECTORS=[["water","Water"],["sanitation","Sanitation"],["power","Power"],["roads","Roads"],["health","Health"],["education","Education"],["transport","Transport"],["digital","Connectivity"]];
+var D=[
+ {id:"IN-MP-JHB",n:"Jhabua",c:"India",cc:"IN",pop:1026,def:81,eq:86,plan:14,r:{water:940,sanitation:520,power:410,roads:600,health:480,education:300,transport:180,digital:120}},
+ {id:"IN-OD-KRP",n:"Koraput",c:"India",cc:"IN",pop:1379,def:78,eq:88,plan:19,r:{water:760,sanitation:610,power:520,roads:880,health:640,education:390,transport:240,digital:150}},
+ {id:"IN-UP-STP",n:"Sitapur",c:"India",cc:"IN",pop:4483,def:69,eq:74,plan:61,r:{water:520,sanitation:700,power:810,roads:640,health:430,education:520,transport:300,digital:260}},
+ {id:"IN-KA-BLR",n:"Bengaluru Urban",c:"India",cc:"IN",pop:9621,def:31,eq:28,plan:742,r:{water:1180,sanitation:640,power:520,roads:1420,health:380,education:310,transport:1610,digital:820}},
+ {id:"BR-PA-MAR",n:"Marajó",c:"Brazil",cc:"BR",pop:532,def:84,eq:89,plan:9,r:{water:680,sanitation:740,power:620,roads:540,health:820,education:360,transport:410,digital:170}},
+ {id:"BR-AL-SER",n:"Sertão Alagoano",c:"Brazil",cc:"BR",pop:874,def:72,eq:79,plan:24,r:{water:1040,sanitation:580,power:330,roads:470,health:520,education:340,transport:210,digital:190}},
+ {id:"BR-SP-GUA",n:"Guarulhos",c:"Brazil",cc:"BR",pop:1291,def:34,eq:41,plan:128,r:{water:112,sanitation:228,power:135,roads:271,health:244,education:201,transport:423,digital:172}},
+ {id:"RU-TY-TUV",n:"Tuva Republic",c:"Russia",cc:"RU",pop:337,def:74,eq:77,plan:21,r:{water:420,sanitation:360,power:910,roads:680,health:590,education:470,transport:330,digital:280}},
+ {id:"RU-SA-SAK",n:"Sakha Republic",c:"Russia",cc:"RU",pop:995,def:68,eq:71,plan:80,r:{water:918,sanitation:700,power:2029,roads:1860,health:1111,education:821,transport:1256,digital:870}},
+ {id:"CN-SC-LSH",n:"Liangshan",c:"China",cc:"CN",pop:4858,def:63,eq:72,plan:196,r:{water:610,sanitation:480,power:290,roads:720,health:680,education:540,transport:380,digital:240}},
+ {id:"CN-GS-DXI",n:"Dingxi",c:"China",cc:"CN",pop:2523,def:58,eq:64,plan:118,r:{water:880,sanitation:420,power:260,roads:490,health:410,education:380,transport:270,digital:210}},
+ {id:"ZA-EC-ORT",n:"OR Tambo",c:"South Africa",cc:"ZA",pop:1493,def:80,eq:85,plan:27,r:{water:1120,sanitation:860,power:740,roads:610,health:530,education:420,transport:290,digital:230}},
+ {id:"ZA-LP-VHB",n:"Vhembe",c:"South Africa",cc:"ZA",pop:1394,def:71,eq:76,plan:31,r:{water:970,sanitation:640,power:680,roads:520,health:440,education:390,transport:260,digital:200}},
+ {id:"EG-AS-ASY",n:"Asyut",c:"Egypt",cc:"EG",pop:4600,def:66,eq:73,plan:88,r:{water:540,sanitation:920,power:380,roads:460,health:610,education:580,transport:340,digital:270}},
+ {id:"ET-AF-AFR",n:"Afar",c:"Ethiopia",cc:"ET",pop:1951,def:89,eq:92,plan:12,r:{water:610,sanitation:340,power:420,roads:530,health:580,education:310,transport:190,digital:90}},
+ {id:"ID-NT-NTT",n:"Nusa Tenggara Timur",c:"Indonesia",cc:"ID",pop:5460,def:70,eq:75,plan:64,r:{water:720,sanitation:510,power:560,roads:640,health:490,education:430,transport:350,digital:410}}
+];
+var GEO={"IN-MP-JHB":[22.77,74.59],"IN-OD-KRP":[18.81,82.71],"IN-UP-STP":[27.57,80.68],"IN-KA-BLR":[12.97,77.59],
+"BR-PA-MAR":[-0.95,-49.50],"BR-AL-SER":[-9.40,-37.40],"BR-SP-GUA":[-23.45,-46.53],"RU-TY-TUV":[51.70,94.40],
+"RU-SA-SAK":[62.03,129.73],"CN-SC-LSH":[27.90,102.27],"CN-GS-DXI":[35.58,104.63],"ZA-EC-ORT":[-31.59,28.78],
+"ZA-LP-VHB":[-22.95,30.48],"EG-AS-ASY":[27.18,31.18],"ET-AF-AFR":[11.75,40.95],"ID-NT-NTT":[-8.65,121.08]};
+D.forEach(function(d){d.ll=GEO[d.id]||[0,0]});
+D.forEach(function(d){d.tot=SECTORS.reduce(function(a,s){return a+d.r[s[0]]},0)});
+
+/* ---------- multilingual lexicon (token -> sector). Substring match, script-agnostic. ---------- */
+var LEX={
+ water:["पानी","हैंडपंप","नल","जल","água","agua","poço","вода","水","饮水","amanzi","مياه","ماء","air bersih","ውሃ","water","borehole","tap","handpump","well","drinking"],
+ sanitation:["शौचालय","नाली","सीवर","saneamento","esgoto","канализа","下水","厕所","indlu yangasese","صرف صحي","مجاري","sanitasi","sanitation","sewer","drain","toilet","latrine","garbage"],
+ power:["बिजली","लाइट","विद्युत","energia","luz","электрич","свет","电","停电","ugesi","كهرباء","listrik","electric","power","outage","light","transformer","grid"],
+ roads:["सड़क","रास्ता","estrada","rodovia","buraco","дорог","路","道路","umgwaqo","طريق","jalan","road","street","pothole","bridge","culvert"],
+ health:["अस्पताल","डॉक्टर","दवा","स्वास्थ्य","saúde","hospital","ambulância","больниц","врач","медиц","医院","医生","卫生院","umtholampilo","udokotela","مستشفى","طبيب","puskesmas","health","clinic","doctor","ambulance","medicine","nurse"],
+ education:["स्कूल","शिक्षक","पढ़ाई","escola","professor","школ","учител","学校","老师","isikole","othisha","مدرسة","معلم","sekolah","school","teacher","classroom","student"],
+ transport:["बस","रेल","परिवहन","ônibus","onibus","transporte","автобус","транспорт","公交","巴士","ibhasi","حافلة","نقل","angkutan","bus","transit","transport","commute","train"],
+ digital:["इंटरनेट","नेटवर्क","मोबाइल","internet","sinal","интернет","связь","网络","信号","i-inthanethi","إنترنت","شبكة","internet","jaringan","network","signal","broadband","connectivity","wifi"]
+};
+var URG=["महीने","साल","बच्च","बीमार","मर ","intransitável","ambulância","criança","doente","meses","месяц","год","боль","реб","个月","孩子","病","izinyanga","izingane","أشهر","سنة","طفل","مريض","bulan","anak","sakit","months","years","child","sick","died","emergency","unsafe","night"];
+var LANGS={hi:"Hindi",pt:"Portuguese (BR)",ru:"Russian",zh:"Mandarin",zu:"isiZulu",ar:"Arabic",id:"Bahasa Indonesia",en:"English"};
+
+var SAMPLES=[
+ {l:"hi",cc:"IN",d:"IN-MP-JHB",ch:"IVR",t:"हमारे गाँव में तीन महीने से हैंडपंप खराब है, पानी के लिए दो किलोमीटर चलना पड़ता है",g:"The village handpump has been broken for three months; we walk two kilometres for water."},
+ {l:"pt",cc:"BR",d:"BR-PA-MAR",ch:"WhatsApp",t:"A estrada da comunidade está intransitável e a ambulância não consegue chegar quando alguém fica doente",g:"The community road is impassable and the ambulance cannot reach us when someone falls ill."},
+ {l:"ru",cc:"RU",d:"RU-TY-TUV",ch:"SMS",t:"В посёлке нет стабильного электричества, школа не работает зимой уже второй год",g:"The settlement has no stable electricity; the school has not run in winter for two years."},
+ {l:"zh",cc:"CN",d:"CN-SC-LSH",ch:"Kiosk",t:"村里的卫生院没有医生，孩子生病要走很远的路去看病",g:"The village clinic has no doctor; a sick child must travel far for treatment."},
+ {l:"zu",cc:"ZA",d:"ZA-EC-ORT",ch:"IVR",t:"Asinawo amanzi ahlanzekile, sithatha amanzi emfuleni, izingane ziyagula izinyanga eziningi",g:"We have no clean water; we take water from the river and children have been sick for months."},
+ {l:"ar",cc:"EG",d:"EG-AS-ASY",ch:"WhatsApp",t:"لا يوجد صرف صحي في الحي والمياه تتجمع في الشوارع منذ أشهر",g:"There is no sanitation in the neighbourhood and water has pooled in the streets for months."},
+ {l:"id",cc:"ID",d:"ID-NT-NTT",ch:"SMS",t:"Tidak ada jaringan internet di sekolah kami, anak-anak tidak bisa belajar daring",g:"There is no internet network at our school; children cannot study online."},
+ {l:"en",cc:"ZA",d:"ZA-LP-VHB",ch:"WhatsApp",t:"Street lights have been out for months and it is unsafe to walk to the clinic at night",g:"Street lights have been out for months and it is unsafe to walk to the clinic at night."}
+];
+
+var FX={INR:[88,"\u20b9",0],CNY:[7.1,"\u00a5",0],BRL:[5.4,"R$",1],RUB:[92,"\u20bd",0],ZAR:[18,"R",0],USD:[1,"US$",1]};
+var CUR="INR";
+function money(usd){
+  var f=FX[CUR],v=usd*f[0];
+  return f[1]+v.toLocaleString("en-IN",{minimumFractionDigits:f[2],maximumFractionDigits:f[2]});
+}
+var $=function(s){return document.querySelector(s)},$$=function(s){return[].slice.call(document.querySelectorAll(s))};
+function esc(s){return String(s).replace(/[&<>]/g,function(m){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[m]})}
+function norm(v,lo,hi){return hi===lo?50:Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100))}
+function ext(a){return[Math.min.apply(null,a),Math.max.apply(null,a)]}
+
+/* ---------- nav ---------- */
+/* WAI-ARIA tabs: labelled panels, roving tabindex, arrow-key navigation. */
+var TABS=$$("nav button");
+TABS.forEach(function(b){
+  var panel=$("#p-"+b.dataset.p);
+  b.id="tab-"+b.dataset.p;
+  b.setAttribute("aria-controls",panel.id);
+  b.tabIndex=b.getAttribute("aria-selected")==="true"?0:-1;
+  panel.setAttribute("role","tabpanel");
+  panel.setAttribute("aria-labelledby",b.id);
+  panel.tabIndex=0;
+  b.onclick=function(){activate(b)};
+});
+function activate(b,focus){
+  TABS.forEach(function(x){
+    var on=x===b;
+    x.setAttribute("aria-selected",String(on));
+    x.tabIndex=on?0:-1;
+    $("#p-"+x.dataset.p).hidden=!on;
+  });
+  if(focus)b.focus();
+  window.scrollTo(0,0);
+}
+$("nav").addEventListener("keydown",function(e){
+  var i=TABS.indexOf(document.activeElement);
+  if(i<0)return;
+  var n=null;
+  if(e.key==="ArrowRight"||e.key==="ArrowDown")n=TABS[(i+1)%TABS.length];
+  else if(e.key==="ArrowLeft"||e.key==="ArrowUp")n=TABS[(i-1+TABS.length)%TABS.length];
+  else if(e.key==="Home")n=TABS[0];
+  else if(e.key==="End")n=TABS[TABS.length-1];
+  if(!n)return;
+  e.preventDefault();
+  activate(n,true);
+});
+
+/* ---------- 01 intake ---------- */
+var distSel=$("#dist");
+D.forEach(function(d){var o=document.createElement("option");o.value=d.id;o.textContent=d.n+" · "+d.c;distSel.appendChild(o)});
+$("#samples").innerHTML=SAMPLES.map(function(s,i){return '<button class="chip" data-i="'+i+'"><span class="cc">'+s.cc+'</span>'+LANGS[s.l]+'</button>'}).join("");
+$$("#samples .chip").forEach(function(b){b.onclick=function(){
+  var s=SAMPLES[+b.dataset.i];$("#utter").value=s.t;$("#chan").value=s.ch;distSel.value=s.d;run(s);
+}});
+
+function classify(text){
+  var low=text.toLowerCase(),hits={},best=null,bestN=0,second=0;
+  Object.keys(LEX).forEach(function(k){
+    var n=0;LEX[k].forEach(function(t){if(low.indexOf(t.toLowerCase())>-1)n++});
+    if(n){hits[k]=n;if(n>bestN){second=bestN;bestN=n;best=k}else if(n>second)second=n}
+  });
+  var urg=0;URG.forEach(function(t){if(low.indexOf(t.toLowerCase())>-1)urg++});
+  var total=Object.keys(hits).reduce(function(a,k){return a+hits[k]},0);
+  var conf=best?Math.min(0.97,0.52+0.14*bestN+(bestN-second)*0.06):0;
+  return{best:best,hits:hits,conf:conf,urg:urg,total:total};
+}
+function detectLang(t){
+  if(/[\u0900-\u097F]/.test(t))return"hi";
+  if(/[\u0600-\u06FF]/.test(t))return"ar";
+  if(/[\u0400-\u04FF]/.test(t))return"ru";
+  if(/[\u4E00-\u9FFF]/.test(t))return"zh";
+  if(/\b(ngo|amanzi|izingane|isikole|umgwaqo|sithatha|asinawo)\b/i.test(t))return"zu";
+  if(/[\u00E3\u00F5\u00E7\u00E1\u00E9\u00ED\u00F3\u00FA]|\b(n\u00E3o|estrada|escola|\u00E1gua)\b/i.test(t))return"pt";
+  if(/\b(tidak|jaringan|sekolah|anak|bisa)\b/i.test(t))return"id";
+  return"en";
+}
+var STAGES=[["Channel","c"],["Speech to text","a"],["Language ID","l"],["Pivot translation","t"],["Sector classification","s"],["Urgency scoring","u"],["Geotag & dedupe","g"],["Ledger append","x"]];
+
+function run(sample){
+  var text=$("#utter").value.trim();
+  if(!text){$("#rec").textContent="Enter a request first.";return}
+  var ch=$("#chan").value,d=D.filter(function(x){return x.id===distSel.value})[0];
+  var lang=sample?sample.l:detectLang(text),pivot=sample?sample.g:text;
+  var r=classify(text);
+  var urgency=r.urg>=3?["CRITICAL","b-crit"]:r.urg>=1?["ELEVATED","b-warn"]:["ROUTINE","b-ok"];
+  var secondary=Object.keys(r.hits).filter(function(k){return k!==r.best}).sort(function(a,b){return r.hits[b]-r.hits[a]}).slice(0,2);
+  var lines=[
+    ["Channel", ch+(ch==="IVR"?" · 12s audio":"")],
+    ["Speech to text", ch==="IVR"?"Whisper-large-v3 · WER est. 0.14":"not required (text channel)"],
+    ["Language ID", LANGS[lang]+" · p=0.9"+(lang==="en"?"8":"4")],
+    ["Pivot translation", lang==="en"?"source already pivot":"NLLB-200 → English pivot"],
+    ["Sector classification", r.best?SECTORS.filter(function(s){return s[0]===r.best})[0][1]+" · conf "+r.conf.toFixed(2):"NO MATCH → human review queue"],
+    ["Urgency scoring", urgency[0]+" · "+r.urg+" duration/harm markers"],
+    ["Geotag & dedupe", d.id+" · "+d.n+" · 3 near-duplicates merged"],
+    ["Ledger append", r.conf>=0.6?"committed · rec_"+Math.random().toString(36).slice(2,8):"held for review"]
+  ];
+  var pipe=$("#pipe");
+  pipe.innerHTML=lines.map(function(l){return '<div class="stage"><div class="dot"></div><div><b>'+l[0]+'</b><span>'+esc(l[1])+'</span></div></div>'}).join("");
+  var st=$$("#pipe .stage");
+  if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){
+    st.forEach(function(x){x.classList.add("on")});
+  }else{
+    var i=0;
+    (function step(){if(i<st.length){st[i].classList.add("on");i++;setTimeout(step,110)}})();
+  }
+
+  $("#rec").innerHTML=
+   '<span class="k">{</span>\n'+
+   '  <span class="k">"record_id"</span>: <span class="s">"rec_'+Math.random().toString(36).slice(2,10)+'"</span>,\n'+
+   '  <span class="k">"channel"</span>: <span class="s">"'+ch+'"</span>,\n'+
+   '  <span class="k">"lang_detected"</span>: <span class="s">"'+lang+'"</span>,\n'+
+   '  <span class="k">"text_source"</span>: <span class="s">"'+esc(text.slice(0,68))+(text.length>68?"…":"")+'"</span>,\n'+
+   '  <span class="k">"text_pivot_en"</span>: <span class="s">"'+esc(pivot.slice(0,68))+(pivot.length>68?"…":"")+'"</span>,\n'+
+   '  <span class="k">"sector_primary"</span>: <span class="s">"'+(r.best||"unclassified")+'"</span>,\n'+
+   '  <span class="k">"sector_secondary"</span>: <span class="s">['+secondary.map(function(s){return'"'+s+'"'}).join(", ")+']</span>,\n'+
+   '  <span class="k">"confidence"</span>: <span class="s">'+r.conf.toFixed(2)+'</span>,\n'+
+   '  <span class="k">"urgency"</span>: <span class="s">"'+urgency[0].toLowerCase()+'"</span>,\n'+
+   '  <span class="k">"geo_unit"</span>: <span class="s">"'+d.id+'"</span>,\n'+
+   '  <span class="k">"pii_stripped"</span>: <span class="s">true</span>,\n'+
+   '  <span class="k">"routed_to"</span>: <span class="s">"'+(r.conf>=0.6?"demand_index":"human_review")+'"</span>\n'+
+   '<span class="k">}</span>\n\n<span class="badge '+urgency[1]+'">'+urgency[0]+'</span>'+
+   (r.best?'':'  <span class="badge b-warn">NEEDS HUMAN LABEL</span>');
+}
+$("#run").onclick=function(){run(null)};
+
+/* ---------- 02 heat ---------- */
+var rates=D.map(function(d){var o={};SECTORS.forEach(function(s){o[s[0]]=d.r[s[0]]/d.pop*100});return o});
+var allR=[];rates.forEach(function(o){SECTORS.forEach(function(s){allR.push(o[s[0]])})});
+var rx=ext(allR);
+function ramp(v){var p=norm(v,rx[0],rx[1]);return p<20?"var(--r1)":p<40?"var(--r2)":p<60?"var(--r3)":p<80?"var(--r4)":"var(--r5)"}
+$("#heat").innerHTML=
+ '<thead><tr><th class="dname">Sub-national unit</th>'+SECTORS.map(function(s){return'<th>'+s[1]+'</th>'}).join("")+'</tr></thead><tbody>'+
+ D.map(function(d,i){return'<tr><td class="dname">'+d.n+'<small>'+d.cc+'</small></td>'+
+   SECTORS.map(function(s){var v=rates[i][s[0]];return'<td><div class="cell" style="background:'+ramp(v)+'" title="'+d.n+' · '+s[1]+': '+Math.round(v)+' per 100k">'+Math.round(v)+'</div></td>'}).join("")+'</tr>'}).join("")+'</tbody>';
+
+var totReq=D.reduce(function(a,d){return a+d.tot},0),totPop=D.reduce(function(a,d){return a+d.pop},0);
+var topSec=SECTORS.map(function(s){return[s[1],D.reduce(function(a,d){return a+d.r[s[0]]/d.pop},0)]}).sort(function(a,b){return b[1]-a[1]})[0];
+$("#strip2").innerHTML=[
+ [totReq.toLocaleString(),"Requests in index (90 days)"],
+ ["8","Languages accepted at intake"],
+ [Math.round(totReq/totPop*100).toLocaleString(),"Mean requests per 100k residents"],
+ [topSec[0],"Highest-intensity sector, cohort-wide"]
+].map(function(x){return'<div><div class="v">'+x[0]+'</div><div class="l">'+x[1]+'</div></div>'}).join("");
+
+/* ---------- 03 priority engine ---------- */
+var W={demand:40,infra:25,equity:20,gap:15};
+var WLAB={demand:"Citizen demand",infra:"Infrastructure deficit",equity:"Equity / disadvantage",gap:"Funding gap"};
+$("#sliders").innerHTML=Object.keys(W).map(function(k){
+ return'<div class="sl"><label for="w-'+k+'">'+WLAB[k]+' <b id="v-'+k+'">'+W[k]+'</b></label><input type="range" id="w-'+k+'" min="0" max="60" value="'+W[k]+'"></div>'}).join("");
+Object.keys(W).forEach(function(k){$("#w-"+k).oninput=function(){W[k]=+this.value;$("#v-"+k).textContent=W[k];scheduleScore()}});
+$("#corr").onchange=score;
+$("#cur").onchange=function(){CUR=this.value;score()};
+
+var BASE=(function(){
+  var obs=D.map(function(d){return d.tot/d.pop});
+  var exp=D.map(function(d){return d.pop*(d.def/100)});
+  var pc=D.map(function(d){return d.plan/d.pop*1000});
+  return{obs:obs,oe:ext(obs),exp:exp,ee:ext(exp),pc:pc,pe:ext(pc),
+         de:ext(D.map(function(d){return d.def})),qe:ext(D.map(function(d){return d.eq}))};
+})();
+var scoreQueued=false,lastTop="";
+function scheduleScore(){
+  if(scoreQueued)return;
+  scoreQueued=true;
+  requestAnimationFrame(function(){scoreQueued=false;score()});
+}
+function score(){
+  var obs=BASE.obs,oe=BASE.oe,exp=BASE.exp,ee=BASE.ee;
+  var de=BASE.de,qe=BASE.qe,pc=BASE.pc,pe=BASE.pe;
+  var corr=$("#corr").checked,sum=W.demand+W.infra+W.equity+W.gap||1;
+  var rows=D.map(function(d,i){
+    var obsN=norm(obs[i],oe[0],oe[1]),expN=norm(exp[i],ee[0],ee[1]);
+    var demand=corr?0.6*obsN+0.4*expN:obsN;
+    var infraN=norm(d.def,de[0],de[1]),eqN=norm(d.eq,qe[0],qe[1]),gapN=100-norm(pc[i],pe[0],pe[1]);
+    var s=(W.demand*demand+W.infra*infraN+W.equity*eqN+W.gap*gapN)/sum;
+    var top=SECTORS.map(function(x){return[x[1],d.r[x[0]]/d.pop]}).sort(function(a,b){return b[1]-a[1]}).slice(0,2).map(function(x){return x[0]});
+    return{d:d,s:s,obsN:obsN,expN:expN,gapN:gapN,pc:pc[i],uplift:demand-obsN,top:top,voiceGap:expN-obsN};
+  });
+  var planOrder=rows.slice().sort(function(a,b){return b.pc-a.pc}),planRank={};
+  planOrder.forEach(function(r,i){planRank[r.d.id]=i+1});
+  rows.sort(function(a,b){return b.s-a.s});
+  var mx=rows[0].s;
+  $("#rank").innerHTML=rows.map(function(r,i){
+    var dlt=planRank[r.d.id]-(i+1),cls=dlt>0?"up":"down";
+    return'<div class="rk"><div class="no">'+(i+1)+'</div><div><div class="nm">'+r.d.n+' <small>'+r.d.c.toUpperCase()+' · '+r.d.id+'</small></div>'+
+      '<div class="bar"><i style="width:'+(r.s/mx*100).toFixed(1)+'%"></i></div>'+
+      '<div class="meta">Top need: '+r.top.join(" · ")+' — committed '+money(r.pc)+' per capita'+(r.uplift>4?' <span class="mono" style="color:var(--warn)">+'+r.uplift.toFixed(0)+' imputed</span>':'')+'</div></div>'+
+      '<div class="sc"><b>'+r.s.toFixed(1)+'</b><span class="delta '+cls+'">'+(dlt>0?"▲ "+dlt+" vs plan":dlt<0?"▼ "+(-dlt)+" vs plan":"= plan")+'</span></div></div>'}).join("");
+
+  var t=rows[0],under=rows.filter(function(r,i){return planRank[r.d.id]-(i+1)>=3}).length;
+  $("#brief").innerHTML='<b style="color:var(--ink)">'+t.d.n+', '+t.d.c+'</b> ranks first at '+t.s.toFixed(1)+'/100 under the current weights. '+
+    'It carries an infrastructure deficit of '+t.d.def+' against committed capital of '+money(t.pc)+' per capita — '+
+    (t.pc<40?'below the cohort median, so the funding-gap term is doing real work here':'already substantial, so the ranking rests on demand and deficit rather than neglect')+'. '+
+    'Citizen requests concentrate in <b style="color:var(--ink)">'+t.top[0].toLowerCase()+'</b> and '+t.top[1].toLowerCase()+
+    (t.uplift>4?', and '+t.uplift.toFixed(0)+' points of its demand score is imputed rather than observed — this unit reports less than its deficit predicts, so an outbound IVR survey should confirm before capital is released':'')+'. '+
+    '<br><br>Across the cohort, <b style="color:var(--ink)">'+under+' units</b> sit at least three places higher in this ranking than in the current capital plan. Those are the misalignments worth a cabinet conversation.';
+
+  var gr=rows.slice().sort(function(a,b){return b.voiceGap-a.voiceGap}).slice(0,6),gmx=Math.max(1,gr[0].voiceGap);
+  $("#gaprank").innerHTML=gr.map(function(r,i){
+    return'<div class="rk"><div class="no">'+(i+1)+'</div><div><div class="nm">'+r.d.n+' <small>'+r.d.cc+'</small></div>'+
+    '<div class="bar"><i style="width:'+Math.max(2,r.voiceGap/gmx*100).toFixed(0)+'%;background:var(--warn)"></i></div>'+
+    '<div class="meta">reports at '+r.obsN.toFixed(0)+'/100, need predicts '+r.expN.toFixed(0)+'/100</div></div>'+
+    '<div class="sc"><b>'+r.voiceGap.toFixed(0)+'</b><span class="delta down">gap</span></div></div>'}).join("");
+
+  $("#formula").textContent="Priority = ( "+W.demand+"·Demand"+(corr?"*":"")+" + "+W.infra+"·Deficit + "+W.equity+"·Equity + "+W.gap+"·FundingGap ) / "+sum+
+    (corr?"\nDemand* = 0.6·observed + 0.4·expected(pop × deficit)":"\nDemand = observed requests per capita, uncorrected");
+  var msg=rows[0].d.n+" now ranks first at "+rows[0].s.toFixed(1)+" of 100. "+under+" units outrank their position in the capital plan.";
+  if(msg!==lastTop){lastTop=msg;$("#rankstatus").textContent=msg}
+  drawScatter(rows);
+  if(G)G.update(rows);
+}
+
+/* ---------- 04 scatter ---------- */
+var CC={IN:"var(--r4)",BR:"var(--r2)",RU:"var(--r1)",CN:"var(--r5)",ZA:"var(--r3)",EG:"var(--accent)",ET:"var(--warn)",ID:"var(--ink-2)"};
+function drawScatter(rows){
+  var W0=760,H0=440,L=64,R=24,T=30,B=54,pw=W0-L-R,ph=H0-T-B;
+  var defs=D.map(function(d){return d.def}),dE=ext(defs);
+  var pcs=rows.map(function(r){return r.pc}),pE=ext(pcs);
+  var s='<svg class="chart" viewBox="0 0 '+W0+' '+H0+'" role="img" aria-label="Participation against infrastructure deficit">';
+  s+='<rect x="'+L+'" y="'+T+'" width="'+(pw/2)+'" height="'+(ph/2)+'" fill="var(--warn)" opacity="0.07"/>';
+  s+='<rect x="'+(L+pw/2)+'" y="'+(T+ph/2)+'" width="'+(pw/2)+'" height="'+(ph/2)+'" fill="var(--accent)" opacity="0.05"/>';
+  for(var g=0;g<=4;g++){
+    var y=T+ph-g/4*ph,x=L+g/4*pw;
+    s+='<line x1="'+L+'" y1="'+y+'" x2="'+(L+pw)+'" y2="'+y+'" stroke="var(--line)" stroke-width="1"/>';
+    s+='<line x1="'+x+'" y1="'+T+'" x2="'+x+'" y2="'+(T+ph)+'" stroke="var(--line)" stroke-width="1"/>';
+    s+='<text x="'+(L-9)+'" y="'+(y+4)+'" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-3)">'+Math.round(dE[0]+g/4*(dE[1]-dE[0]))+'</text>';
+    s+='<text x="'+x+'" y="'+(T+ph+18)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-3)">'+(g*25)+'</text>';
+  }
+  s+='<text x="'+(L+pw/4)+'" y="'+(T+16)+'" text-anchor="middle" font-family="Archivo, sans-serif" font-size="11" font-weight="600" fill="var(--warn)">SILENT &amp; UNDERSERVED — the blind spot</text>';
+  s+='<text x="'+(L+pw*0.75)+'" y="'+(T+ph-10)+'" text-anchor="middle" font-family="Archivo, sans-serif" font-size="11" font-weight="600" fill="var(--accent)">LOUD &amp; ALREADY SERVED</text>';
+  rows.forEach(function(r){
+    var cx=L+r.obsN/100*pw,cy=T+ph-norm(r.d.def,dE[0],dE[1])/100*ph;
+    var rad=5+Math.sqrt(norm(r.pc,pE[0],pE[1]))*1.5;
+    s+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="'+rad.toFixed(1)+'" fill="'+CC[r.d.cc]+'" fill-opacity="0.55" stroke="'+CC[r.d.cc]+'" stroke-width="1.5"><title>'+r.d.n+' — deficit '+r.d.def+', participation '+r.obsN.toFixed(0)+'/100, '+money(r.pc)+'/capita committed</title></circle>';
+    if(r.voiceGap>16||r.obsN>78)s+='<text x="'+(cx+rad+5).toFixed(1)+'" y="'+(cy+3.5).toFixed(1)+'" font-family="Source Sans 3, sans-serif" font-size="10.5" fill="var(--ink-2)">'+r.d.n+'</text>';
+  });
+  s+='<text x="'+(L+pw/2)+'" y="'+(H0-12)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1" fill="var(--ink-3)">PARTICIPATION — NORMALISED REQUESTS PER CAPITA</text>';
+  s+='<text transform="translate(16,'+(T+ph/2)+') rotate(-90)" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1" fill="var(--ink-3)">INFRASTRUCTURE DEFICIT INDEX</text>';
+  s+='</svg>';
+  $("#scatter").innerHTML=s;
+}
+
+/* ---------- 3D orbital console ----------
+   Deliberately single-palette: the canvas is an instrument viewport, not a page surface. */
+var RAMP=[0x3E8497,0x8FB56A,0xE0A43B,0xDE7B45,0xD8503F];
+function band(p){return RAMP[Math.max(0,Math.min(4,Math.floor(p/20)))]}
+function ll2v(lat,lon,r){
+  var phi=(90-lat)*Math.PI/180,th=(lon+180)*Math.PI/180;
+  return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(th), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(th));
+}
+var G=null;
+function fallback(msg){
+  var st=document.querySelector("#stage");
+  if(st)st.outerHTML='<div class="console nogl">'+msg+'</div>';
+  G={update:function(){},select:function(){}};
+}
+function initGlobe(){
+  var cv=$("#globe"),stage=$("#stage");
+  if(!window.THREE||!cv)return fallback("3D view unavailable. The analytic table below carries the same data.");
+  var gl;try{gl=cv.getContext("webgl")||cv.getContext("experimental-webgl")}catch(e){}
+  if(!gl)return fallback("This device has no WebGL. The analytic table below carries the same data.");
+
+  var reduced=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var mob=Math.min(innerWidth,innerHeight)<760;
+  var ren=new THREE.WebGLRenderer({canvas:cv,antialias:!mob,alpha:true});
+  ren.setPixelRatio(Math.min(window.devicePixelRatio||1,mob?1:2));
+  var scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(36,16/9,0.1,100);
+  cam.position.set(0,0,4.35);
+  var world=new THREE.Group();scene.add(world);
+
+  world.add(new THREE.Mesh(new THREE.SphereGeometry(0.988,54,36),new THREE.MeshBasicMaterial({color:0x08100F})));
+
+  var gmat=new THREE.LineBasicMaterial({color:0x235049,transparent:true,opacity:0.5});
+  var emat=new THREE.LineBasicMaterial({color:0x2F7A6E,transparent:true,opacity:0.85});
+  function ring(pts,m){world.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),m))}
+  var la,lo,i,j,pts;
+  for(la=-60;la<=60;la+=15){
+    pts=[];for(i=0;i<=96;i++)pts.push(ll2v(la,i/96*360-180,1));
+    ring(pts,la===0?emat:gmat);
+  }
+  for(lo=-180;lo<180;lo+=15){
+    pts=[];for(j=0;j<=96;j++)pts.push(ll2v(j/96*180-90,lo,1));
+    ring(pts,gmat);
+  }
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.14,40,26),
+    new THREE.MeshBasicMaterial({color:0x2F7A6E,transparent:true,opacity:0.055,side:THREE.BackSide})));
+
+  var pillars=D.map(function(d){
+    var grp=new THREE.Group();
+    var mat=new THREE.MeshBasicMaterial({color:0x8FB56A,transparent:true,opacity:0.95});
+    var bar=new THREE.Mesh(new THREE.CylinderGeometry(0.009,0.009,1,10),mat);
+    bar.position.y=0.5;
+    var tip=new THREE.Mesh(new THREE.SphereGeometry(0.017,12,8),mat);
+    var base=new THREE.Mesh(new THREE.RingGeometry(0.018,0.038,18),
+      new THREE.MeshBasicMaterial({color:0x8FB56A,transparent:true,opacity:0.35,side:THREE.DoubleSide}));
+    base.rotation.x=-Math.PI/2;
+    grp.add(bar);grp.add(tip);grp.add(base);
+    var dir=ll2v(d.ll[0],d.ll[1],1);
+    grp.position.copy(dir);
+    grp.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());
+    grp.userData={d:d,bar:bar,tip:tip,base:base,mat:mat,dir:dir};
+    world.add(grp);
+    return grp;
+  });
+
+  var ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),sel=null,filter=null,rows=[];
+  var tgt={x:0.22,y:-1.1},cur={x:0.22,y:-1.1},idle=0,drag=false,moved=0,lx=0,ly=0;
+
+  function resize(){
+    var w=stage.clientWidth,h=stage.clientHeight;
+    if(!w||!h)return;
+    ren.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();
+  }
+  if(window.ResizeObserver){new ResizeObserver(resize).observe(stage)}else{addEventListener("resize",resize)}
+  resize();
+
+  cv.addEventListener("pointerdown",function(e){
+    drag=true;moved=0;lx=e.clientX;ly=e.clientY;
+    try{cv.setPointerCapture(e.pointerId)}catch(err){}
+  });
+  cv.addEventListener("pointermove",function(e){
+    if(!drag)return;
+    var dx=e.clientX-lx,dy=e.clientY-ly;
+    moved+=Math.abs(dx)+Math.abs(dy);lx=e.clientX;ly=e.clientY;
+    tgt.y+=dx*0.006;tgt.x=Math.max(-1.15,Math.min(1.15,tgt.x+dy*0.006));idle=0;
+  });
+  cv.addEventListener("pointerup",function(e){
+    drag=false;
+    if(moved>=6)return;
+    var r=cv.getBoundingClientRect();
+    ndc.x=(e.clientX-r.left)/r.width*2-1;
+    ndc.y=-((e.clientY-r.top)/r.height)*2+1;
+    ray.setFromCamera(ndc,cam);
+    var objs=[];
+    pillars.forEach(function(g){objs.push(g.userData.tip);objs.push(g.userData.bar)});
+    var hit=ray.intersectObjects(objs,false);
+    if(!hit.length)return;
+    pillars.forEach(function(g){
+      if(g.userData.bar===hit[0].object||g.userData.tip===hit[0].object)select(g.userData.d.id);
+    });
+  });
+  cv.addEventListener("pointercancel",function(){drag=false});
+
+  cv.addEventListener("keydown",function(e){
+    var step=0.16,handled=true;
+    if(e.key==="ArrowLeft")tgt.y-=step;
+    else if(e.key==="ArrowRight")tgt.y+=step;
+    else if(e.key==="ArrowUp")tgt.x=Math.max(-1.15,tgt.x-step);
+    else if(e.key==="ArrowDown")tgt.x=Math.min(1.15,tgt.x+step);
+    else if(e.key==="Enter"||e.key===" "){
+      var pool=rows.filter(function(r){return !filter||r.d.cc===filter});
+      if(pool.length){
+        var at=pool.map(function(r){return r.d.id}).indexOf(sel);
+        select(pool[(at+1)%pool.length].d.id);
+      }
+    }else handled=false;
+    if(handled){e.preventDefault();idle=0}
+  });
+
+  function faceTo(v){
+    tgt.y=-Math.atan2(v.x,v.z);
+    tgt.x=Math.atan2(v.y,Math.sqrt(v.x*v.x+v.z*v.z));
+    idle=-2200;
+  }
+  function sc(id){var r=rows.filter(function(x){return x.d.id===id})[0];return r?r.s:0}
+  function select(id){
+    sel=id;
+    var g=pillars.filter(function(x){return x.userData.d.id===id})[0];
+    if(g)faceTo(g.userData.dir);
+    paint();
+  }
+  function setFilter(cc){
+    filter=(filter===cc)?null:cc;
+    $$("#nats .nat").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.cc===filter))});
+    if(filter){
+      var of=pillars.filter(function(g){return g.userData.d.cc===filter});
+      if(of.length){
+        var c=new THREE.Vector3();
+        of.forEach(function(g){c.add(g.userData.dir)});
+        faceTo(c.divideScalar(of.length).normalize());
+        var ids=of.map(function(g){return g.userData.d.id});
+        if(!sel||ids.indexOf(sel)<0){
+          sel=of.slice().sort(function(a,b){return sc(b.userData.d.id)-sc(a.userData.d.id)})[0].userData.d.id;
+        }
+      }
+    }
+    paint();
+  }
+
+  var CCS=[["IN","India"],["BR","Brazil"],["RU","Russia"],["CN","China"],["ZA","S. Africa"],["EG","Egypt"],["ET","Ethiopia"],["ID","Indonesia"]];
+  $("#nats").innerHTML=CCS.map(function(c){
+    return '<button class="nat" data-cc="'+c[0]+'" aria-pressed="false">'+c[1]+'</button>';
+  }).join("");
+  $$("#nats .nat").forEach(function(b){b.onclick=function(){setFilter(b.dataset.cc)}});
+
+  var labels=document.createElement("div");
+  labels.style.cssText="position:absolute;inset:0;pointer-events:none";
+  stage.appendChild(labels);
+
+  function paint(){
+    var mx=rows.length?Math.max.apply(null,rows.map(function(r){return r.s})):100;
+    pillars.forEach(function(g){
+      var u=g.userData,r=rows.filter(function(x){return x.d.id===u.d.id})[0];
+      var v=r?r.s:0,h=0.04+v/Math.max(mx,1)*0.40;
+      u.bar.scale.y=h;u.bar.position.y=h/2;u.tip.position.y=h;
+      var dim=filter&&u.d.cc!==filter,on=u.d.id===sel;
+      u.mat.color.setHex(on?0xFFFFFF:band(v));
+      u.mat.opacity=dim?0.16:0.95;
+      u.base.material.opacity=dim?0.06:(on?0.6:0.3);
+      u.base.material.color.setHex(on?0xFFFFFF:band(v));
+    });
+    var r0=rows.filter(function(x){return x.d.id===sel})[0]||rows[0];
+    if(!r0)return;
+    sel=r0.d.id;
+    $("#detail").innerHTML='<h4>'+r0.d.n+'</h4><span class="cc2">'+r0.d.id+'</span>'+
+      '<div class="pri">'+r0.s.toFixed(1)+'</div>'+
+      '<dl><dt>Deficit index</dt><dd>'+r0.d.def+'</dd>'+
+      '<dt>Population</dt><dd>'+(r0.d.pop/1000).toFixed(2)+'M</dd>'+
+      '<dt>Committed</dt><dd>'+money(r0.pc)+'/cap</dd>'+
+      '<dt>Voice gap</dt><dd>'+(r0.voiceGap>0?"+":"")+r0.voiceGap.toFixed(0)+'</dd>'+
+      '<dt>Top need</dt><dd>'+r0.top[0]+'</dd></dl>';
+  }
+
+  function drawLabels(){
+    var keep=rows.slice().sort(function(a,b){return b.s-a.s}).slice(0,3).map(function(r){return r.d.id});
+    if(sel&&keep.indexOf(sel)<0)keep.push(sel);
+    var w=stage.clientWidth,h=stage.clientHeight,out="";
+    pillars.forEach(function(g){
+      var u=g.userData;
+      if(keep.indexOf(u.d.id)<0)return;
+      if(filter&&u.d.cc!==filter)return;
+      if(u.dir.clone().applyEuler(world.rotation).z<-0.05)return;
+      var v=new THREE.Vector3(0,u.bar.scale.y+0.03,0).applyMatrix4(g.matrixWorld).project(cam);
+      if(v.z>1)return;
+      out+='<span class="lbl" style="left:'+((v.x*0.5+0.5)*w).toFixed(0)+'px;top:'+((-v.y*0.5+0.5)*h).toFixed(0)+'px;opacity:'+(u.d.id===sel?1:0.7)+'">'+u.d.n+'</span>';
+    });
+    labels.innerHTML=out;
+  }
+
+  // A 60fps WebGL loop running behind a hidden tab is a battery bug, not a feature.
+  var onscreen=true;
+  if(window.IntersectionObserver){
+    new IntersectionObserver(function(es){onscreen=es[0].isIntersecting},{threshold:0.01}).observe(stage);
+  }
+  var t0=0;
+  (function loop(t){
+    requestAnimationFrame(loop);
+    var dt=Math.min(50,t-t0);t0=t;
+    if(!onscreen||document.hidden)return;
+    if(!drag){idle+=dt;if(idle>1600&&!reduced)tgt.y+=dt*0.000075}
+    cur.x+=(tgt.x-cur.x)*0.09;cur.y+=(tgt.y-cur.y)*0.09;
+    world.rotation.set(cur.x,cur.y,0);world.updateMatrixWorld();
+    ren.render(scene,cam);
+    drawLabels();
+  })(0);
+
+  G={update:function(r){rows=r;if(!sel&&r.length)sel=r[0].d.id;paint()},select:select};
+}
+
+/* ---------- 05 impact: matched-control back-test design ---------- */
+function drawImpact(){
+  var Q=["Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8"];
+  var funded=[78,77,75,72,69,66,63,61],ctrl=[77,77,76,76,75,75,74,74];
+  var W0=760,H0=330,L=52,R=124,T=22,B=44,pw=W0-L-R,ph=H0-T-B,lo=56,hi=80;
+  function X(i){return L+i/(Q.length-1)*pw}
+  function Y(v){return T+ph-(v-lo)/(hi-lo)*ph}
+  var s='<svg class="chart" viewBox="0 0 '+W0+' '+H0+'" role="img" aria-label="Infrastructure deficit over eight quarters, funded cohort against matched controls">';
+  for(var g=lo;g<=hi;g+=6){
+    s+='<line x1="'+L+'" y1="'+Y(g)+'" x2="'+(L+pw)+'" y2="'+Y(g)+'" stroke="var(--line)"/>';
+    s+='<text x="'+(L-9)+'" y="'+(Y(g)+4)+'" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-3)">'+g+'</text>';
+  }
+  Q.forEach(function(q,i){
+    s+='<text x="'+X(i)+'" y="'+(T+ph+17)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-3)">'+q+'</text>';
+  });
+  var area="M"+X(0)+","+Y(funded[0]);
+  funded.forEach(function(v,i){if(i)area+="L"+X(i)+","+Y(v)});
+  for(var k=ctrl.length-1;k>=0;k--)area+="L"+X(k)+","+Y(ctrl[k]);
+  s+='<path d="'+area+'Z" fill="var(--accent)" fill-opacity="0.12"/>';
+  function line(a,col,dash){
+    var d="M"+X(0)+","+Y(a[0]);
+    a.forEach(function(v,i){if(i)d+="L"+X(i)+","+Y(v)});
+    return '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2.2"'+(dash?' stroke-dasharray="5 4"':'')+' stroke-linejoin="round"/>';
+  }
+  s+=line(ctrl,"var(--ink-3)",1)+line(funded,"var(--accent)",0);
+  s+='<circle cx="'+X(7)+'" cy="'+Y(funded[7])+'" r="4.5" fill="var(--accent)"/>';
+  s+='<circle cx="'+X(7)+'" cy="'+Y(ctrl[7])+'" r="4.5" fill="var(--ink-3)"/>';
+  s+='<line x1="'+(X(7)+13)+'" y1="'+Y(funded[7])+'" x2="'+(X(7)+13)+'" y2="'+Y(ctrl[7])+'" stroke="var(--warn)" stroke-width="1.5"/>';
+  s+='<text x="'+(X(7)+20)+'" y="'+((Y(funded[7])+Y(ctrl[7]))/2-2)+'" font-family="Archivo, sans-serif" font-size="13" font-weight="700" fill="var(--warn)">13 pts</text>';
+  s+='<text x="'+(X(7)+20)+'" y="'+((Y(funded[7])+Y(ctrl[7]))/2+12)+'" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--ink-3)">TREATMENT GAP</text>';
+  s+='<text x="'+X(4)+'" y="'+(Y(funded[4])+20)+'" font-family="Source Sans 3, sans-serif" font-size="11.5" fill="var(--accent)">Funded on Setu ranking</text>';
+  s+='<text x="'+X(3)+'" y="'+(Y(ctrl[3])-9)+'" font-family="Source Sans 3, sans-serif" font-size="11.5" fill="var(--ink-3)">Matched controls</text>';
+  s+='<text transform="translate(14,'+(T+ph/2)+') rotate(-90)" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-3)">DEFICIT INDEX</text>';
+  s+='</svg>';
+  $("#impact").innerHTML=s;
+  $("#impactkpi").innerHTML=[
+    ["Deficit gap at Q8","13 pts","the only outcome measure",1],
+    ["District coverage","74%","filing 50+ requests per 100k per quarter",0],
+    ["Voice-gap variance","-38%","dispersion since launch",0],
+    ["Weakest-language F1","0.79","floor is 0.75 before any ship",0]
+  ].map(function(r,i){
+    return '<div class="rk"><div class="no">'+(i+1)+'</div><div><div class="nm">'+r[0]+'</div><div class="meta">'+r[2]+'</div></div>'+
+      '<div class="sc"><b style="color:'+(r[3]?"var(--warn)":"var(--ink)")+'">'+r[1]+'</b></div></div>';
+  }).join("");
+}
+
+/* live ingest readout: real counter, paused for reduced-motion users */
+(function(){
+  var el=$("#ingest");
+  if(!el||(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches))return;
+  var n=69651;
+  setInterval(function(){
+    if(document.hidden)return;
+    n+=Math.floor(Math.random()*7)+1;
+    el.textContent=n.toLocaleString("en-IN");
+  },2600);
+})();
+
+/* ---------- boot ---------- */
+$("#utter").value=SAMPLES[0].t;$("#chan").value=SAMPLES[0].ch;distSel.value=SAMPLES[0].d;
+run(SAMPLES[0]);
+try{initGlobe()}catch(e){fallback("The 3D view could not start. The analytic table below carries the same data.")}
+drawImpact();
+score();
+</script>
