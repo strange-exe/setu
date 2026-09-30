@@ -8,7 +8,7 @@ Built for **Hack2Skill · Build with AI: Code for Communities**
 
 | | |
 |---|---|
-| **Live prototype** | _paste your shared artifact link here_ |
+| **Live prototype** | https://abhinesh.codes/setu |
 | **Deck** | [`Setu-deck.pptx`](Setu-deck.pptx) (14 slides) |
 | **Licence** | AGPL-3.0 (platform) · CC-BY-4.0 (schema & taxonomy) |
 | **Status** | Working prototype on a synthetic cohort. Not production. |
