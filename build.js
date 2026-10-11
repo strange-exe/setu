@@ -1,7 +1,7 @@
 /**
  * Production build for the Setu console.
  *
- * setu.html is authored in Claude Artifact format: no doctype, no <head>, because the
+ * index.html is authored in Claude Artifact format: no doctype, no <head>, because the
  * artifact host supplies that wrapper. Opened any other way it has no charset declaration,
  * so every non-ASCII character (the rupee sign, the Devanagari samples, en dashes) decodes
  * as Latin-1 and renders as mojibake. This build produces a standalone, self-hostable
@@ -22,7 +22,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { minify } = require('html-minifier-terser');
 
-const SRC = path.join(__dirname, 'setu.html');
+const SRC = path.join(__dirname, 'index.html');
 const OUT_DIR = path.join(__dirname, 'dist');
 const OUT = path.join(OUT_DIR, 'index.html');
 

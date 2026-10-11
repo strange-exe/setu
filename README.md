@@ -91,7 +91,7 @@ npm run build        # -> dist/index.html  (self-contained, open it directly)
 
 Then open `dist/index.html`, or serve `dist/` with any static host.
 
-**Build `dist/` rather than opening `setu.html` directly.** The source is authored in Claude
+**Build `dist/` rather than opening `index.html` directly.** The source is authored in Claude
 Artifact format — no doctype and no `<head>`, because the artifact host supplies that wrapper.
 Opened any other way it carries no charset declaration, so every non-ASCII character (the rupee
 sign, the Devanagari and Arabic samples, en dashes) decodes as Latin-1 and renders as mojibake.
@@ -115,7 +115,7 @@ hue and detail removed.
 ### Repository layout
 
 ```
-setu.html            the prototype source — markup, tokens, scoring engine, 3D scene
+index.html           the prototype source — markup, tokens, scoring engine, 3D scene
 build.js             production build: standalone document, minify, CSP, security headers
 DESIGN.md            the design system: palette, type, components, motion, banned patterns
 e2e/design.spec.ts   the design + accessibility gate
