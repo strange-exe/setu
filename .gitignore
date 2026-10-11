@@ -1,2 +1,21 @@
 node_modules/
-.claude
+dist/
+
+# Agent + planning scratch (never committed)
+.claude/
+brief-description.txt
+
+# Video tooling output: hyperframes project, renders, large binaries
+brag-output/
+
+# Office lock/owner files
+~$*
+
+# Local env
+.env
+.env.*
+!.env.example
+
+e2e/shots/
+test-results/
+playwright-report/

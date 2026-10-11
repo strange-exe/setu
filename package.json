@@ -1,5 +1,17 @@
 {
-  "dependencies": {
-    "pptxgenjs": "^4.0.1"
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.64.0",
+    "html-minifier-terser": "^7.2.0"
+  },
+  "name": "setu",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Setu - citizen signal to national capital plan. A multilingual Digital Public Good for BRICS+ infrastructure allocation.",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "build": "node build.js",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
   }
 }

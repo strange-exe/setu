@@ -1,0 +1,10 @@
+# Normalise line endings in the repository regardless of each contributor's core.autocrlf.
+# A Digital Public Good is meant to be forked and audited; byte-identical checkouts matter.
+* text=auto eol=lf
+
+*.pptx  binary
+*.png   binary
+*.jpg   binary
+*.mp4   binary
+*.ogg   binary
+*.mp3   binary

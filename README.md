@@ -80,29 +80,68 @@ flattering controls afterwards.
 
 ## Running it
 
-The prototype is a **single dependency-free HTML file**. No build step, no server, no install.
-
-```bash
-open setu.html
-```
-
-Everything runs client-side. Three.js loads from cdnjs; without it the globe degrades to the
+The prototype is a **single dependency-free HTML page** — no framework, no bundler at runtime.
+Everything executes client-side. Three.js loads from cdnjs; without it the globe degrades to the
 analytic table and the rest of the console is unaffected.
 
-To regenerate the deck:
+```bash
+npm install
+npm run build        # -> dist/index.html  (self-contained, open it directly)
+```
+
+Then open `dist/index.html`, or serve `dist/` with any static host.
+
+**Build `dist/` rather than opening `setu.html` directly.** The source is authored in Claude
+Artifact format — no doctype and no `<head>`, because the artifact host supplies that wrapper.
+Opened any other way it carries no charset declaration, so every non-ASCII character (the rupee
+sign, the Devanagari and Arabic samples, en dashes) decodes as Latin-1 and renders as mojibake.
+`npm run build` wraps it in a real document with `<meta charset="utf-8">`, minifies it, and
+emits a Content-Security-Policy.
+
+### Verifying it
 
 ```bash
-npm install pptxgenjs && node build-deck.js
+npm test             # Playwright: desktop + mobile x light + dark, all six panels
 ```
+
+The suite is the design and accessibility gate, not a smoke test. It asserts no console errors
+or failed requests, no horizontal overflow, the primary action above the fold on both
+viewports, **axe-core WCAG 2.2 A/AA with zero violations** on every panel in both themes,
+that reduced motion stops the globe and the live counter, that a device without WebGL falls
+back to the data table rather than an empty box, and that LCP stays inside budget. It also
+captures grayscale and blurred screenshots so the intended reading order can be checked with
+hue and detail removed.
 
 ### Repository layout
 
 ```
-setu.html        the entire prototype — markup, tokens, engine, 3D scene
-build-deck.js    pptxgenjs generator for the pitch deck
-Setu-deck.pptx   generated, 14 slides
-README.md        this file
+setu.html            the prototype source — markup, tokens, scoring engine, 3D scene
+build.js             production build: standalone document, minify, CSP, security headers
+DESIGN.md            the design system: palette, type, components, motion, banned patterns
+e2e/design.spec.ts   the design + accessibility gate
+playwright.config.ts runs the suite against dist/, owns the test server
+Setu-deck.pptx       pitch deck, 14 slides
+dist/                build output (gitignored)
 ```
+
+### Production build
+
+`npm run build` does four things, and is honest about what it does not do:
+
+- **Standalone document** with UTF-8 charset, viewport, and `color-scheme` metadata.
+- **Minified** HTML, CSS and JS, with `console.*` and `debugger` stripped. ~11% smaller.
+- **Content-Security-Policy** with `default-src 'none'`. `script-src` is hash-locked to the one
+  inline block plus cdnjs, with no `'unsafe-inline'`. `style-src` *does* allow inline: CSP
+  hashes never apply to `style="..."` attributes, and the globe computes element geometry at
+  runtime, so those values cannot be known at build time. The residual risk is nil here, since
+  the console renders no user-supplied or remote content.
+- **`dist/_headers`** carries what a `<meta>` CSP cannot — `frame-ancestors`, `nosniff`,
+  `Referrer-Policy`, `Permissions-Policy` — plus `Cache-Control: no-cache` on the HTML. A
+  single-document build has no content-hashed assets to cache immutably.
+
+This removes readable structure. It does not create secrecy: everything in `dist/` is readable
+by any visitor. That is fine — the console holds no secrets, all figures are synthetic, and the
+scoring weights are published on purpose.
 
 ---
 

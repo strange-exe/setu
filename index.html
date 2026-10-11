@@ -9,10 +9,10 @@
 :root{
   /* surface ladder: each step is a physically higher plane */
   --ground:#EEF1F0; --plane:#FFFFFF; --raised:#FFFFFF; --sunk:#E4E9E7; --line:#CFD8D5; --line-2:#E2E8E6;
-  --ink:#11201C; --ink-2:#44554F; --ink-3:#64766F;
-  --accent:#0F766A; --accent-2:#0B5C52; --accent-soft:#DCEDE9; --on-accent:#FFFFFF;
-  --warn:#9A5B12; --crit:#A8372B; --good:#2F6B40;
-  --r1:#2F6F7E; --r2:#6F9150; --r3:#C08A22; --r4:#C25F2C; --r5:#A8372B;
+  --ink:#11201C; --ink-2:#44554F; --ink-3:#5A6B65;
+  --accent:#0E6E63; --accent-2:#0A574E; --accent-soft:#DCEDE9; --on-accent:#FFFFFF;
+  --warn:#8A5210; --crit:#A8372B; --good:#2F6B40;
+  --r1:#2F6F7E; --r2:#6F9150; --r3:#C08A22; --r4:#D2733E; --r5:#A8372B;
   --void:#060D0C; --void-2:#0B1614; --void-line:#17332E; --void-ink:#BFD6D0;
 
   /* spacing scale */
@@ -38,7 +38,7 @@
   --ink:#E7EFEC; --ink-2:#A6B8B2; --ink-3:#7B918A;
   --accent:#4FC3AE; --accent-2:#3AA894; --accent-soft:#12302C; --on-accent:#06110F;
   --warn:#E0A43B; --crit:#E2705F; --good:#6FBF83;
-  --r1:#3E8497; --r2:#8FB56A; --r3:#E0A43B; --r4:#DE7B45; --r5:#D8503F;
+  --r1:#3A7C8E; --r2:#8FB56A; --r3:#E0A43B; --r4:#DE7B45; --r5:#C9402F;
   --sh1:0 1px 2px rgba(0,0,0,.40);
   --sh2:0 2px 4px rgba(0,0,0,.36), 0 6px 16px -6px rgba(0,0,0,.50);
   --sh3:0 10px 34px -12px rgba(0,0,0,.72), 0 2px 8px rgba(0,0,0,.40);
@@ -51,7 +51,7 @@
   --ink:#E7EFEC; --ink-2:#A6B8B2; --ink-3:#7B918A;
   --accent:#4FC3AE; --accent-2:#3AA894; --accent-soft:#12302C; --on-accent:#06110F;
   --warn:#E0A43B; --crit:#E2705F; --good:#6FBF83;
-  --r1:#3E8497; --r2:#8FB56A; --r3:#E0A43B; --r4:#DE7B45; --r5:#D8503F;
+  --r1:#3A7C8E; --r2:#8FB56A; --r3:#E0A43B; --r4:#DE7B45; --r5:#C9402F;
   --sh1:0 1px 2px rgba(0,0,0,.40);
   --sh2:0 2px 4px rgba(0,0,0,.36), 0 6px 16px -6px rgba(0,0,0,.50);
   --sh3:0 10px 34px -12px rgba(0,0,0,.72), 0 2px 8px rgba(0,0,0,.40);
@@ -204,6 +204,11 @@ table.heat td.dname{padding:0 var(--sp3) 0 0;white-space:nowrap;font-size:13px}
 table.heat td.dname small{color:var(--ink-3);font-family:var(--mono);font-size:10px;margin-left:5px}
 .cell{height:26px;border-radius:var(--rad1);display:flex;align-items:center;justify-content:center;
   font-family:var(--mono);font-size:10.5px;color:#fff;cursor:default;font-variant-numeric:tabular-nums}
+/* Light fills need dark ink: white on the amber band measures 2.2:1. Band colours and ink are
+   chosen together so every one of the ten combinations clears WCAG AA in both themes. */
+.cell.c0{background:var(--r1)} .cell.c1{background:var(--r2)} .cell.c2{background:var(--r3)}
+.cell.c3{background:var(--r4)} .cell.c4{background:var(--r5)}
+.cell.ink-dark{color:#0B1210}
 .legend{display:flex;gap:2px;align-items:center;margin-top:var(--sp3);font-size:11px;color:var(--ink-3);flex-wrap:wrap}
 .legend i{width:26px;height:9px;display:inline-block;border-radius:1px}
 
@@ -309,7 +314,23 @@ ul.tight b{color:var(--ink)}
   .cols2{columns:1}
   .layer{grid-template-columns:1fr;gap:var(--sp2)}
 }
-@media (max-width:460px){.strip{grid-template-columns:1fr}.page-head h2{font-size:23px}}
+/* Phone: the primary action must be reachable without scrolling past the explainer.
+   The language chips become one horizontally scrollable row instead of five wrapped rows,
+   which is both the largest saving and the better phone pattern. */
+@media (max-width:620px){
+  .page-head{padding-bottom:var(--sp3);margin-bottom:var(--sp4)}
+  .page-head h2{font-size:22px}
+  .page-head p{font-size:12.5px;margin-top:var(--sp1)}
+  .panel{padding:var(--sp4)}
+  .panel>h3+p{font-size:12.5px;margin-bottom:var(--sp3)}
+  .chips{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;
+    scroll-snap-type:x proximity;padding-bottom:var(--sp1);margin-bottom:var(--sp2)}
+  .chip{flex:none;scroll-snap-align:start}
+  textarea{min-height:68px}
+  .row{gap:var(--sp2);margin-top:var(--sp2)}
+  .row select,.row .btn{flex:1 1 100%}
+}
+@media (max-width:460px){.strip{grid-template-columns:1fr}.page-head h2{font-size:21px}}
 
 </style>
 
@@ -412,7 +433,7 @@ ul.tight b{color:var(--ink)}
       <p id="globehelp" class="vh">Use the left and right arrow keys to rotate, up and down to tilt, and Enter to step through units. Every value shown here also appears in the table below.</p>
       <div class="ov ov-tl" id="nats"></div>
       <div class="detail" id="detail"></div>
-      <div class="ov ov-bl">PRIORITY SCORE<br><span class="sw" style="background:#3E8497"></span><span class="sw" style="background:#8FB56A"></span><span class="sw" style="background:#E0A43B"></span><span class="sw" style="background:#DE7B45"></span><span class="sw" style="background:#D8503F"></span> LOW &rarr; CRITICAL</div>
+      <div class="ov ov-bl">PRIORITY SCORE<br><span class="sw" style="background:#3A7C8E"></span><span class="sw" style="background:#8FB56A"></span><span class="sw" style="background:#E0A43B"></span><span class="sw" style="background:#DE7B45"></span><span class="sw" style="background:#C9402F"></span> LOW &rarr; CRITICAL</div>
       <div class="ov ov-br">SYNTHETIC COHORT &middot; 16 UNITS &middot; 8 STATES</div>
     </div>
     <p class="kbdhint">KEYBOARD: FOCUS THE GLOBE, THEN ← → TO ROTATE, ↑ ↓ TO TILT, ENTER TO STEP THROUGH UNITS</p>
@@ -421,9 +442,9 @@ ul.tight b{color:var(--ink)}
   <div class="panel">
     <h3>Sectoral demand intensity</h3>
     <p>Darker cells carry more requests per capita. Read down a column for a cross-border sector signal; read across a row for a district's own priority order.</p>
-    <div class="gridwrap"><table class="heat" id="heat"></table></div>
-    <div class="legend"><span style="margin-right:6px">Requests / 100k:</span><i style="background:var(--r1)"></i><i style="background:var(--r2)"></i><i style="background:var(--r3)"></i><i style="background:var(--r4)"></i><i style="background:var(--r5)"></i><span style="margin-left:6px">low → high</span></div>
-    <p class="note">Synthetic data. Sector taxonomy aligns to the UN SDG 6/7/9 infrastructure families so records stay comparable across member states.</p>
+    <div class="gridwrap" tabindex="0" role="region" aria-label="Sectoral demand intensity, requests per 100,000 residents"><table class="heat" id="heat"></table></div>
+    <div class="legend"><span style="margin-right:6px">Requests / 100k, by quintile:</span><i style="background:var(--r1)"></i><i style="background:var(--r2)"></i><i style="background:var(--r3)"></i><i style="background:var(--r4)"></i><i style="background:var(--r5)"></i><span style="margin-left:6px">low → high</span></div>
+    <p class="note">Bands are quintiles of the cohort, not a linear ramp: request rates are right-skewed, and a linear scale would colour four fifths of this matrix identically. Synthetic data. Sector taxonomy aligns to the UN SDG 6/7/9 infrastructure families so records stay comparable across member states.</p>
   </div>
 </section>
 
@@ -462,7 +483,7 @@ ul.tight b{color:var(--ink)}
       </div>
       <div class="panel">
         <h3>Scoring function</h3>
-        <div class="formula" id="formula"></div>
+        <div class="formula" id="formula" tabindex="0" role="region" aria-label="Scoring function"></div>
         <p class="note">All terms min–max normalised to 0–100 across the cohort. Funding gap is the inverse of committed capital per capita, so well-funded units are damped, not excluded.</p>
       </div>
     </div>
@@ -785,11 +806,21 @@ $("#run").onclick=function(){run(null)};
 var rates=D.map(function(d){var o={};SECTORS.forEach(function(s){o[s[0]]=d.r[s[0]]/d.pop*100});return o});
 var allR=[];rates.forEach(function(o){SECTORS.forEach(function(s){allR.push(o[s[0]])})});
 var rx=ext(allR);
-function ramp(v){var p=norm(v,rx[0],rx[1]);return p<20?"var(--r1)":p<40?"var(--r2)":p<60?"var(--r3)":p<80?"var(--r4)":"var(--r5)"}
+/* Quintile cut points, not a linear min-max ramp. Request rates are heavily right-skewed —
+   a handful of sparse, high-deficit units (Tuva, Sakha) sit an order of magnitude above the
+   median — so a linear scale drops roughly four fifths of the matrix into the lowest band and
+   the hotspot view stops carrying information. Quintiles give each band about a fifth of the
+   cells, which is what makes the cross-border column comparison legible. */
+var sortedR=allR.slice().sort(function(a,b){return a-b});
+function qcut(p){return sortedR[Math.min(sortedR.length-1,Math.floor(p*sortedR.length))]}
+var CUTS=[qcut(0.2),qcut(0.4),qcut(0.6),qcut(0.8)];
+/* Band index 0-4. Bands 1-3 are light fills and carry dark ink; 0 and 4 carry white. */
+function band5(v){return v<CUTS[0]?0:v<CUTS[1]?1:v<CUTS[2]?2:v<CUTS[3]?3:4}
 $("#heat").innerHTML=
  '<thead><tr><th class="dname">Sub-national unit</th>'+SECTORS.map(function(s){return'<th>'+s[1]+'</th>'}).join("")+'</tr></thead><tbody>'+
  D.map(function(d,i){return'<tr><td class="dname">'+d.n+'<small>'+d.cc+'</small></td>'+
-   SECTORS.map(function(s){var v=rates[i][s[0]];return'<td><div class="cell" style="background:'+ramp(v)+'" title="'+d.n+' · '+s[1]+': '+Math.round(v)+' per 100k">'+Math.round(v)+'</div></td>'}).join("")+'</tr>'}).join("")+'</tbody>';
+   SECTORS.map(function(s){var v=rates[i][s[0]],b=band5(v);
+     return'<td><div class="cell c'+b+(b>0&&b<4?' ink-dark':'')+'" title="'+d.n+' · '+s[1]+': '+Math.round(v)+' per 100k">'+Math.round(v)+'</div></td>'}).join("")+'</tr>'}).join("")+'</tbody>';
 
 var totReq=D.reduce(function(a,d){return a+d.tot},0),totPop=D.reduce(function(a,d){return a+d.pop},0);
 var topSec=SECTORS.map(function(s){return[s[1],D.reduce(function(a,d){return a+d.r[s[0]]/d.pop},0)]}).sort(function(a,b){return b[1]-a[1]})[0];
@@ -900,7 +931,7 @@ function drawScatter(rows){
 
 /* ---------- 3D orbital console ----------
    Deliberately single-palette: the canvas is an instrument viewport, not a page surface. */
-var RAMP=[0x3E8497,0x8FB56A,0xE0A43B,0xDE7B45,0xD8503F];
+var RAMP=[0x3A7C8E,0x8FB56A,0xE0A43B,0xDE7B45,0xC9402F];
 function band(p){return RAMP[Math.max(0,Math.min(4,Math.floor(p/20)))]}
 function ll2v(lat,lon,r){
   var phi=(90-lat)*Math.PI/180,th=(lon+180)*Math.PI/180;
