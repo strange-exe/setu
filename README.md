@@ -91,12 +91,15 @@ npm run build        # -> dist/index.html  (self-contained, open it directly)
 
 Then open `dist/index.html`, or serve `dist/` with any static host.
 
-**Build `dist/` rather than opening `index.html` directly.** The source is authored in Claude
-Artifact format — no doctype and no `<head>`, because the artifact host supplies that wrapper.
-Opened any other way it carries no charset declaration, so every non-ASCII character (the rupee
-sign, the Devanagari and Arabic samples, en dashes) decodes as Latin-1 and renders as mojibake.
-`npm run build` wraps it in a real document with `<meta charset="utf-8">`, minifies it, and
-emits a Content-Security-Policy.
+`index.html` is authored in Claude Artifact format — the host supplies the document wrapper — but
+it carries its own `<!doctype html>` and charset / viewport metas so it is also correct served on
+its own. Without them a browser falls back to quirks mode and, with no viewport meta, lays a phone
+out at 980 px and scales the whole page down; without a charset it depends on the host sending one,
+or the rupee sign and the Devanagari and Arabic samples decode as Latin-1. The live link above is
+this file served directly.
+
+`npm run build` is still what you deploy: it strips those duplicates, emits a full `<head>`,
+minifies, hash-locks a Content-Security-Policy and writes security headers.
 
 ### Verifying it
 

@@ -1,11 +1,11 @@
 /**
  * Production build for the Setu console.
  *
- * index.html is authored in Claude Artifact format: no doctype, no <head>, because the
- * artifact host supplies that wrapper. Opened any other way it has no charset declaration,
- * so every non-ASCII character (the rupee sign, the Devanagari samples, en dashes) decodes
- * as Latin-1 and renders as mojibake. This build produces a standalone, self-hostable
- * document that fixes that, then hardens it:
+ * index.html is authored in Claude Artifact format: the artifact host supplies the document
+ * wrapper, so the file is a bare fragment. It does carry its own doctype and charset/viewport
+ * metas, because it is also served directly on GitHub Pages and without them that deployment
+ * runs in quirks mode and lays a phone out at 980px. This build produces the hardened,
+ * self-hostable form:
  *
  *   - full document skeleton with an explicit UTF-8 charset and viewport
  *   - minified HTML, CSS and JS; comments and console.* stripped
@@ -37,8 +37,15 @@ function take(src, re) {
 async function build() {
   const raw = fs.readFileSync(SRC, 'utf8');
 
+  // The source carries its own doctype and charset/viewport metas so that serving it
+  // directly (GitHub Pages does exactly that) still gets standards mode and a real mobile
+  // layout. This build emits its own head, so drop them here rather than shipping two.
+  const stripped = raw
+    .replace(/^\s*<!doctype html>\s*/i, '')
+    .replace(/<meta\s+(?:charset|name="(?:viewport|color-scheme)")[^>]*>\s*/gi, '');
+
   // Pull the pieces that belong in <head> out of the artifact-format body.
-  const title = take(raw, /<title>[\s\S]*?<\/title>/i);
+  const title = take(stripped, /<title>[\s\S]*?<\/title>/i);
   const links = take(title.rest, /<link\b[^>]*>/gi);
   const extScripts = take(links.rest, /<script\b[^>]*\bsrc=[^>]*><\/script>/gi);
   const styles = take(extScripts.rest, /<style>[\s\S]*?<\/style>/gi);
