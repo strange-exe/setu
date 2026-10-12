@@ -199,6 +199,41 @@ test("no WebGL falls back to the analytic table", async ({ page }) => {
   await page.screenshot({ path: `${SHOTS}/fallback-nowebgl.png`, animations: "disabled" });
 });
 
+test("declared icons resolve and are the real thing", async ({ page, request }) => {
+  // A browser requests a favicon out of band, so nothing else in this suite would notice the
+  // links rotting. They are relative on purpose — the live deployment is a project page under
+  // /setu/ — which makes them exactly the kind of path a move or a rename breaks silently.
+  await page.goto("/");
+
+  const declared = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]')].map(
+      (l) => ({ rel: l.rel, attr: l.getAttribute("href"), resolved: l.href }),
+    ),
+  );
+  expect(declared.map((d) => d.rel).sort()).toEqual(["apple-touch-icon", "icon"]);
+  for (const d of declared) {
+    expect(d.attr, `${d.rel} must stay relative to survive the /setu/ subpath`).not.toMatch(/^\//);
+
+    const res = await request.get(d.resolved);
+    expect(res.status(), `${d.rel} -> ${d.attr}`).toBe(200);
+
+    // Status 200 is not proof: a static host happily returns the 200 of an index page for a
+    // missing asset. Check the bytes are the format the link claims.
+    const body = await res.body();
+    if (d.rel === "icon") {
+      expect(body.toString("utf8").trimStart().startsWith("<svg"), "favicon must be SVG").toBe(true);
+    } else {
+      expect(body.subarray(1, 4).toString("ascii"), "touch icon must be PNG").toBe("PNG");
+      // iOS asks for 180x180 and scales anything else, so assert the raster from the IHDR
+      // rather than trusting the filename.
+      expect(
+        [body.readUInt32BE(16), body.readUInt32BE(20)],
+        "apple-touch-icon must be 180x180",
+      ).toEqual([180, 180]);
+    }
+  }
+});
+
 test("LCP and weight reported against the §4 budget", async ({ page }) => {
   await page.setViewportSize(viewports[0]);
 

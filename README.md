@@ -111,7 +111,8 @@ The suite is the design and accessibility gate, not a smoke test. It asserts no 
 or failed requests, no horizontal overflow, the primary action above the fold on both
 viewports, **axe-core WCAG 2.2 A/AA with zero violations** on every panel in both themes,
 that reduced motion stops the globe and the live counter, that a device without WebGL falls
-back to the data table rather than an empty box, and that LCP stays inside budget. It also
+back to the data table rather than an empty box, that the declared icons resolve relative to
+the deployment subpath and are the format they claim, and that LCP stays inside budget. It also
 captures grayscale and blurred screenshots so the intended reading order can be checked with
 hue and detail removed.
 
@@ -119,6 +120,8 @@ hue and detail removed.
 
 ```
 index.html           the prototype source — markup, tokens, scoring engine, 3D scene
+favicon.svg          the mark reduced for a 16px tab: the span, without the apex node
+apple-touch-icon.png 180x180, square on purpose — iOS applies its own rounded mask
 build.js             production build: standalone document, minify, CSP, security headers
 DESIGN.md            the design system: palette, type, components, motion, banned patterns
 e2e/design.spec.ts   the design + accessibility gate

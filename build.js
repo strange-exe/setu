@@ -44,13 +44,16 @@ async function build() {
     .replace(/^\s*<!doctype html>\s*/i, '')
     .replace(/<meta\s+(?:charset|name="(?:viewport|color-scheme)")[^>]*>\s*/gi, '');
 
-  // Pull the pieces that belong in <head> out of the artifact-format body.
+  // Pull the pieces that belong in <head> out of the artifact-format body. The metas matter:
+  // theme-color left in <body> is simply ignored, so the mobile browser chrome would stay
+  // default instead of matching the console.
   const title = take(stripped, /<title>[\s\S]*?<\/title>/i);
-  const links = take(title.rest, /<link\b[^>]*>/gi);
+  const metas = take(title.rest, /<meta\b[^>]*>/gi);
+  const links = take(metas.rest, /<link\b[^>]*>/gi);
   const extScripts = take(links.rest, /<script\b[^>]*\bsrc=[^>]*><\/script>/gi);
   const styles = take(extScripts.rest, /<style>[\s\S]*?<\/style>/gi);
 
-  const head = [title.found, links.found, extScripts.found, styles.found].flat().join('\n');
+  const head = [title.found, metas.found, links.found, extScripts.found, styles.found].flat().join('\n');
   const body = styles.rest.trim();
 
   // Minify head and body together so the inline blocks we hash are the final bytes.
@@ -122,6 +125,14 @@ async function build() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.writeFileSync(OUT, doc, 'utf8');
 
+  // The icons are referenced relatively, so they have to sit next to the document. They are
+  // the only assets that are not inlined: a data: URI favicon is not reliably honoured across
+  // browsers, and an apple-touch-icon must be a real PNG file.
+  const ICONS = ['favicon.svg', 'apple-touch-icon.png'];
+  for (const icon of ICONS) {
+    fs.copyFileSync(path.join(__dirname, icon), path.join(OUT_DIR, icon));
+  }
+
   // Headers a static host (Netlify, Cloudflare Pages) applies. These carry the directives a
   // <meta> CSP cannot, plus caching. The build is a single document, so there are no
   // content-hashed assets to cache immutably: the HTML is everything, and it must revalidate.
@@ -146,6 +157,7 @@ async function build() {
   console.log('  built    ', (after / 1024).toFixed(1), 'KB  (' + Math.round((1 - after / before) * 100) + '% smaller)');
   console.log('  CSP       script-src: hash-locked (' + scriptHashes.size + ' hash), no unsafe-inline');
   console.log('            style-src:  unsafe-inline (runtime element styles cannot be hashed)');
+  console.log('  icons    ', ICONS.join(', '));
   console.log('  headers   dist/_headers (frame-ancestors, nosniff, cache)');
 }
 

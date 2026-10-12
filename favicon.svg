@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Setu">
+  <title>Setu</title>
+  <!--
+    Setu is "bridge". The header mark carries the full idea: a span, the signal at its apex,
+    and the three districts it crosses to reach. This is the 16px reduction of it, and the
+    reduction is the point: rendered as a tab icon, the apex node and the district dots fell
+    below one device pixel and the whole thing turned to mush. What survives is the span.
+
+    Colours are resolved rather than tokens, because an external SVG cannot see the page's
+    :root. The dark tile is deliberate so the mark holds on a light and a dark tab strip
+    alike, rather than depending on prefers-color-scheme, which Safari ignores inside a
+    favicon (WebKit bug 309949).
+  -->
+  <rect width="32" height="32" rx="7" fill="#0E1917"/>
+  <path d="M4.5 23.5c5.5 0 5-9 11.5-9s6 9 11.5 9" fill="none" stroke="#4FC3AE" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="16" cy="13.5" r="3.9" fill="#4FC3AE"/>
+</svg>
